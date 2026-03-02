@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>OrangeShield</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f0f0f;
+      color: white;
+      text-align: center;
+    }
+
+    .container {
+      padding: 40px 20px;
+    }
+
+    button {
+      padding: 12px 20px;
+      margin-top: 20px;
+      background: orange;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    select {
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 10px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    h1 {
+      color: orange;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Welcome Screen -->
+  <div id="welcome" class="container">
+    <h1>Welcome to OrangeShield 🟠</h1>
+    <p>
+      A Bitcoin Layer 1 Conviction Vault built on OP_NET.
+    </p>
+    <p>
+      Lock your BTC. Enforce discipline. Protect your future.
+    </p>
+    <button onclick="enterApp()">Enter Vault</button>
+  </div>
+
+  <!-- Main App -->
+  <div id="app" class="container hidden">
+    <h1>OrangeShield Vault</h1>
+
+    <p>Select Lock Duration:</p>
+    <select id="duration">
+      <option value="30">30 Days</option>
+      <option value="90">90 Days</option>
+      <option value="180">180 Days</option>
+      <option value="365">365 Days</option>
+    </select>
+
+    <br />
+
+    <button onclick="lockBTC()">Lock BTC</button>
+
+    <p id="result"></p>
+  </div>
+
+  <script>
+    function enterApp() {
+      document.getElementById("welcome").classList.add("hidden");
+      document.getElementById("app").classList.remove("hidden");
+    }
+
+    function lockBTC() {
+      const duration = document.getElementById("duration").value;
+      document.getElementById("result").innerText =
+        "BTC locked for " + duration + " days on OP_NET testnet (simulation).";
+    }
+  </script>
+
+</body>
+</html>
