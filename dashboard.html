@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OrangeShield Dashboard — OP_NET Testnet</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Extra dashboard-specific styles */
+    .mobile-nav {
+      display: none;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 12px;
+      overflow-x: auto;
+      gap: 8px;
+    }
+    @media (max-width: 700px) {
+      .mobile-nav { display: flex; }
+    }
+    .mobile-nav-btn {
+      flex-shrink: 0;
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-dim);
+      font-family: var(--display);
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .mobile-nav-btn.active {
+      border-color: var(--orange);
+      color: var(--orange);
+      background: var(--orange-glow);
+    }
+
+    /* Wallet not connected gate */
+    .gate-overlay {
+      position: fixed;
+      top: 60px; left: 0; right: 0; bottom: 0;
+      background: var(--bg);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+      text-align: center;
+    }
+    .gate-overlay.hidden { display: none; }
+    .gate-overlay h2 { color: var(--orange); letter-spacing: 2px; font-size: 20px; }
+    .gate-overlay p { color: var(--text-dim); font-size: 14px; }
+
+    /* Vault balance big display */
+    .vault-balance-display {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 32px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .vbd-left {}
+    .vbd-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 3px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .vbd-amount {
+      font-size: 48px;
+      font-weight: 700;
+      color: var(--orange);
+      line-height: 1;
+      letter-spacing: -1px;
+    }
+    .vbd-unit { font-size: 20px; color: var(--text-dim); margin-left: 6px; }
+    .vbd-right { text-align: right; }
+  </style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <a href="index.html" class="topbar-logo">
+    <div class="logo-icon">🛡</div>
+    <span>ORANGE<span style="color:var(--text-dim);font-weight:400">SHIELD</span></span>
+  </a>
+  <div class="topbar-right">
+    <span class="wallet-address" id="topbar-wallet"></span>
+    <span class="network-badge">⬡ OP_NET TESTNET</span>
+    <button class="btn btn-secondary" id="disconnect-btn"
+      style="padding:7px 14px;font-size:11px;letter-spacing:1px">Disconnect</button>
+  </div>
+</header>
+
+<!-- TOAST -->
+<div id="toast-container"></div>
+
+<!-- WALLET GATE -->
+<div class="gate-overlay" id="gate-overlay">
+  <div style="font-size:52px">🔒</div>
+  <h2>Wallet Not Connected</h2>
+  <p>You need to connect your OP_NET wallet to access the dashboard.</p>
+  <a href="index.html" class="btn btn-primary" style="text-decoration:none;margin-top:8px">Connect Wallet</a>
+</div>
+
+<div class="page-wrap" id="main-app" style="opacity:0;transition:opacity 0.4s ease">
+
+  <!-- MOBILE NAV -->
+  <div class="mobile-nav">
+    <button class="mobile-nav-btn active" onclick="showPage('overview')">Overview</button>
+    <button class="mobile-nav-btn" onclick="showPage('deposit')">Deposit</button>
+    <button class="mobile-nav-btn" onclick="showPage('withdraw')">Withdraw</button>
+    <button class="mobile-nav-btn" onclick="showPage('lock')">Lock Vault</button>
+    <button class="mobile-nav-btn" onclick="showPage('activity')">Activity</button>
+  </div>
+
+  <div class="dash-layout">
+
+    <!-- SIDEBAR -->
+    <nav class="sidebar">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);margin-bottom:16px;">
+        <div style="font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px;">Connected As</div>
+        <div id="sidebar-wallet" style="font-family:var(--mono);font-size:12px;color:var(--text);"></div>
+      </div>
+
+      <div class="sidebar-label">Navigation</div>
+      <div class="sidebar-section">
+        <button class="nav-item active" onclick="showPage('overview')" id="nav-overview">
+          <span class="nav-icon">◈</span> Overview
+        </button>
+        <button class="nav-item" onclick="showPage('deposit')" id="nav-deposit">
+          <span class="nav-icon">↓</span> Deposit
+        </button>
+        <button class="nav-item" onclick="showPage('withdraw')" id="nav-withdraw">
+          <span class="nav-icon">↑</span> Withdraw
+        </button>
+        <button class="nav-item" onclick="showPage('lock')" id="nav-lock">
+          <span class="nav-icon">🔒</span> Lock Vault
+        </button>
+        <button class="nav-item" onclick="showPage('activity')" id="nav-activity">
+          <span class="nav-icon">≡</span> Activity
+        </button>
+      </div>
+
+      <div class="sidebar-label" style="margin-top:20px;">Info</div>
+      <div class="sidebar-section">
+        <div style="padding:10px 12px;font-size:12px;color:var(--text-muted);font-family:var(--mono);line-height:1.7;">
+          <div>Chain: <span style="color:var(--orange)">OP_NET</span></div>
+          <div>Network: <span style="color:var(--text)">Testnet</span></div>
+          <div>Asset: <span style="color:var(--text)">₿ BTC</span></div>
+          <div style="margin-top:8px;">
+            <a href="https://explorer.testnet.opnet.org" target="_blank"
+              style="color:var(--orange);text-decoration:none;font-size:10px;letter-spacing:1px;">
+              → Explorer ↗
+            </a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- MAIN -->
+    <main class="main-content">
+
+      <!-- ══════════════════════ OVERVIEW ══════════════════════ -->
+      <section class="page-section active" id="page-overview">
+        <div class="section-title">Vault <span>Overview</span></div>
+        <div class="section-sub">REAL-TIME VAULT STATE · OP_NET TESTNET</div>
+
+        <!-- Big Balance Display -->
+        <div class="vault-balance-display">
+          <div class="vbd-left">
+            <div class="vbd-label">Vault Balance</div>
+            <div class="vbd-amount" id="ov-balance">0.00000000<span class="vbd-unit">BTC</span></div>
+          </div>
+          <div class="vbd-right">
+            <div id="ov-lock-badge" class="lock-badge unlocked">● UNLOCKED</div>
+            <div style="margin-top:10px;font-family:var(--mono);font-size:10px;color:var(--text-muted);">
+              Lock Status
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-label">Lock Expiry</div>
+            <div class="stat-value" id="ov-expiry" style="font-size:16px;">—</div>
+            <div class="stat-meta">Unlock Date</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Countdown</div>
+            <div class="countdown" id="ov-countdown">—</div>
+            <div class="stat-meta" id="ov-countdown-sub">Until unlock</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Lock Duration</div>
+            <div class="stat-value orange" id="ov-lockdays">—</div>
+            <div class="stat-meta">Days locked</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Network</div>
+            <div class="stat-value" style="font-size:15px;letter-spacing:1px;color:var(--text)">OP_NET</div>
+            <div class="stat-meta" style="color:var(--orange)">Testnet Active</div>
+          </div>
+        </div>
+
+        <!-- Last TX -->
+        <div style="font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px;">
+          Last Transaction
+        </div>
+        <div class="last-tx-card" id="ov-last-tx">
+          <div class="last-tx-row">
+            <span class="last-tx-key">TX Hash</span>
+            <span class="last-tx-val" id="ov-tx-hash">—</span>
+          </div>
+          <div class="last-tx-row" style="margin-top:6px;">
+            <span class="last-tx-key">Explorer</span>
+            <span class="last-tx-val" id="ov-tx-link">—</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════ DEPOSIT ══════════════════════ -->
+      <section class="page-section" id="page-deposit">
+        <div class="section-title"><span>Deposit</span> BTC</div>
+        <div class="section-sub">ADD BITCOIN TO YOUR VAULT · OP_NET TESTNET</div>
+
+        <div class="form-card">
+          <label class="form-label" for="deposit-amount">Amount (BTC)</label>
+          <div class="input-group">
+            <input type="number" class="form-input" id="deposit-amount"
+              placeholder="0.00000000" step="0.00000001" min="0" />
+            <span class="input-suffix">BTC</span>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+            <button class="btn btn-secondary" style="padding:6px 14px;font-size:11px;" onclick="setDepositAmount(0.001)">0.001</button>
+            <button class="btn btn-secondary" style="padding:6px 14px;font-size:11px;" onclick="setDepositAmount(0.01)">0.01</button>
+            <button class="btn btn-secondary" style="padding:6px 14px;font-size:11px;" onclick="setDepositAmount(0.1)">0.1</button>
+            <button class="btn btn-secondary" style="padding:6px 14px;font-size:11px;" onclick="setDepositAmount(1)">1 BTC</button>
+          </div>
+
+          <button class="btn btn-primary btn-full" id="deposit-btn" onclick="handleDeposit()">
+            Deposit BTC
+          </button>
+        </div>
+
+        <div class="tx-result" id="deposit-result">
+          <div class="tx-result-label">✔ Transaction Confirmed</div>
+          <div class="tx-hash" id="deposit-tx-hash"></div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════ WITHDRAW ══════════════════════ -->
+      <section class="page-section" id="page-withdraw">
+        <div class="section-title"><span>Withdraw</span> BTC</div>
+        <div class="section-sub">REMOVE BITCOIN FROM YOUR VAULT · OP_NET TESTNET</div>
+
+        <div class="blocked-notice" id="withdraw-blocked">
+          <p>🔒 <strong>Vault is Locked</strong></p>
+          <p style="margin-top:8px;">Withdrawals are blocked until the lock period expires.</p>
+          <p style="margin-top:6px;font-family:var(--mono);font-size:12px;" id="withdraw-blocked-expiry"></p>
+        </div>
+
+        <div class="form-card" id="withdraw-form">
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:16px;">
+            <div class="form-label" style="margin-bottom:4px;">Available Balance</div>
+            <div style="font-size:22px;font-weight:700;color:var(--orange);font-family:var(--mono);" id="wd-balance">0.00000000 BTC</div>
+          </div>
+
+          <label class="form-label" for="withdraw-amount">Amount (BTC)</label>
+          <div class="input-group">
+            <input type="number" class="form-input" id="withdraw-amount"
+              placeholder="0.00000000" step="0.00000001" min="0" />
+            <span class="input-suffix">BTC</span>
+          </div>
+
+          <button class="btn btn-secondary btn-full" style="margin-bottom:12px;font-size:12px;"
+            onclick="setMaxWithdraw()">MAX</button>
+
+          <button class="btn btn-primary btn-full" id="withdraw-btn" onclick="handleWithdraw()">
+            Withdraw BTC
+          </button>
+        </div>
+
+        <div class="tx-result" id="withdraw-result">
+          <div class="tx-result-label">✔ Withdrawal Confirmed</div>
+          <div class="tx-hash" id="withdraw-tx-hash"></div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════ LOCK VAULT ══════════════════════ -->
+      <section class="page-section" id="page-lock">
+        <div class="section-title">Lock <span>Vault</span></div>
+        <div class="section-sub">TIME-LOCK YOUR BITCOIN · OP_NET TESTNET</div>
+
+        <div class="blocked-notice" id="lock-blocked">
+          <p>🔒 <strong>Vault Already Locked</strong></p>
+          <p style="margin-top:8px;">Your vault is currently time-locked. You cannot lock again until the current lock expires.</p>
+          <p style="margin-top:6px;font-family:var(--mono);font-size:12px;" id="lock-blocked-expiry"></p>
+        </div>
+
+        <div class="form-card" id="lock-form">
+          <div class="form-label">Select Lock Duration</div>
+
+          <div class="duration-grid">
+            <button class="duration-btn" onclick="selectDuration(30)" id="dur-30">
+              30 <span>Days</span>
+            </button>
+            <button class="duration-btn" onclick="selectDuration(90)" id="dur-90">
+              90 <span>Days</span>
+            </button>
+            <button class="duration-btn" onclick="selectDuration(180)" id="dur-180">
+              180 <span>Days</span>
+            </button>
+            <button class="duration-btn" onclick="selectDuration(365)" id="dur-365">
+              365 <span>Days</span>
+            </button>
+          </div>
+
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px;">
+            <div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-bottom:6px;letter-spacing:1px;">SELECTED DURATION</div>
+            <div id="lock-preview" style="font-size:18px;font-weight:700;color:var(--orange);">
+              Select a duration above
+            </div>
+            <div id="lock-preview-date" style="font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-top:4px;"></div>
+          </div>
+
+          <button class="btn btn-primary btn-full" id="lock-btn" onclick="handleLock()">
+            Lock Vault
+          </button>
+
+          <div style="margin-top:12px;padding:12px;background:rgba(247,147,26,0.05);border:1px solid var(--orange-glow);border-radius:8px;">
+            <p style="font-family:var(--mono);font-size:10px;color:var(--text-muted);line-height:1.6;letter-spacing:0.5px;">
+              ⚠ WARNING: Once locked, withdrawals are blocked for the entire lock period. This action is irreversible on-chain.
+            </p>
+          </div>
+        </div>
+
+        <div class="tx-result" id="lock-result">
+          <div class="tx-result-label">✔ Vault Locked Successfully</div>
+          <div class="tx-hash" id="lock-tx-hash"></div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════ ACTIVITY ══════════════════════ -->
+      <section class="page-section" id="page-activity">
+        <div class="section-title">Transaction <span>Activity</span></div>
+        <div class="section-sub">VAULT HISTORY · OP_NET TESTNET</div>
+
+        <div class="activity-log">
+          <div class="activity-header">Transaction Log</div>
+          <div id="activity-list">
+            <div class="activity-empty">No transactions yet.</div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="opnet-testnet.js"></script>
+<script src="app.js"></script>
+<script>
+// ─── DASHBOARD STATE ───────────────────────────────────────────────────────
+
+let selectedDuration = null;
+let countdownInterval = null;
+let activityLog = JSON.parse(localStorage.getItem('opnet_activity') || '[]');
+
+// ─── NAVIGATION ────────────────────────────────────────────────────────────
+
+function showPage(id) {
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.mobile-nav-btn').forEach(n => n.classList.remove('active'));
+
+  const sec = document.getElementById('page-' + id);
+  if (sec) sec.classList.add('active');
+
+  const navEl = document.getElementById('nav-' + id);
+  if (navEl) navEl.classList.add('active');
+
+  // mobile
+  document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+    if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(id)) {
+      btn.classList.add('active');
+    }
+  });
+
+  // Refresh data for relevant pages
+  if (id === 'overview') refreshOverview();
+  if (id === 'withdraw') refreshWithdraw();
+  if (id === 'lock') refreshLock();
+  if (id === 'activity') renderActivity();
+}
+
+// ─── INIT DASHBOARD ────────────────────────────────────────────────────────
+
+async function initDashboard() {
+  const wallet = localStorage.getItem('opnet_wallet');
+
+  if (!wallet) {
+    document.getElementById('gate-overlay').classList.remove('hidden');
+    return;
+  }
+
+  document.getElementById('gate-overlay').classList.add('hidden');
+  document.getElementById('main-app').style.opacity = '1';
+
+  // Set wallet displays
+  const short = shortAddr(wallet);
+  const walletEl = document.getElementById('topbar-wallet');
+  const sidebarEl = document.getElementById('sidebar-wallet');
+  if (walletEl) { walletEl.textContent = short; walletEl.classList.add('visible'); }
+  if (sidebarEl) sidebarEl.textContent = short;
+
+  // Disconnect button
+  document.getElementById('disconnect-btn').addEventListener('click', () => {
+    localStorage.removeItem('opnet_wallet');
+    localStorage.removeItem('opnet_chainId');
+    window.location.href = 'index.html';
+  });
+
+  await refreshOverview();
+  startCountdown();
+}
+
+// ─── OVERVIEW ──────────────────────────────────────────────────────────────
+
+async function refreshOverview() {
+  try {
+    const state = await getVaultState();
+    updateOverviewUI(state);
+  } catch (err) {
+    showToast('Error', err.message, 'error');
+  }
+}
+
+function updateOverviewUI(state) {
+  const fmt = (n) => parseFloat(n).toFixed(8);
+
+  // Balance
+  const balEl = document.getElementById('ov-balance');
+  if (balEl) balEl.innerHTML = `${fmt(state.balance)}<span class="vbd-unit">BTC</span>`;
+
+  // Lock badge
+  const badge = document.getElementById('ov-lock-badge');
+  if (badge) {
+    if (state.locked) {
+      badge.className = 'lock-badge locked';
+      badge.textContent = '🔒 LOCKED';
+    } else {
+      badge.className = 'lock-badge unlocked';
+      badge.textContent = '● UNLOCKED';
+    }
+  }
+
+  // Expiry
+  const expiryEl = document.getElementById('ov-expiry');
+  if (expiryEl) {
+    expiryEl.textContent = state.lockExpiry
+      ? new Date(state.lockExpiry).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      : '—';
+  }
+
+  // Lock days
+  const ldEl = document.getElementById('ov-lockdays');
+  if (ldEl) ldEl.textContent = state.lockDays ? state.lockDays + 'd' : '—';
+
+  // Last TX
+  const txEl = document.getElementById('ov-tx-hash');
+  const txLinkEl = document.getElementById('ov-tx-link');
+  if (txEl) {
+    if (state.lastTxHash) {
+      txEl.textContent = state.lastTxHash.slice(0, 32) + '...';
+    } else {
+      txEl.textContent = '—';
+    }
+  }
+  if (txLinkEl) {
+    if (state.lastTxHash) {
+      const url = `${OPNET_TESTNET.explorer}/tx/${state.lastTxHash}`;
+      txLinkEl.innerHTML = `<a href="${url}" target="_blank" rel="noopener">View on Explorer ↗</a>`;
+    } else {
+      txLinkEl.textContent = '—';
+    }
+  }
+}
+
+function startCountdown() {
+  if (countdownInterval) clearInterval(countdownInterval);
+  countdownInterval = setInterval(updateCountdown, 1000);
+  updateCountdown();
+}
+
+function updateCountdown() {
+  const vault = JSON.parse(localStorage.getItem('opnet_vault') || '{}');
+  const el = document.getElementById('ov-countdown');
+  const sub = document.getElementById('ov-countdown-sub');
+  if (!el) return;
+
+  if (!vault.locked || !vault.lockExpiry) {
+    el.textContent = '—';
+    if (sub) sub.textContent = 'Vault unlocked';
+    return;
+  }
+
+  const remaining = vault.lockExpiry - Date.now();
+  if (remaining <= 0) {
+    el.textContent = 'EXPIRED';
+    if (sub) sub.textContent = 'Lock expired';
+    return;
+  }
+
+  const days = Math.floor(remaining / 86400000);
+  const hours = Math.floor((remaining % 86400000) / 3600000);
+  const mins = Math.floor((remaining % 3600000) / 60000);
+  const secs = Math.floor((remaining % 60000) / 1000);
+
+  el.textContent = `${String(days).padStart(2,'0')}d ${String(hours).padStart(2,'0')}h ${String(mins).padStart(2,'0')}m ${String(secs).padStart(2,'0')}s`;
+  if (sub) sub.textContent = 'Until unlock';
+}
+
+// ─── DEPOSIT ───────────────────────────────────────────────────────────────
+
+function setDepositAmount(v) {
+  document.getElementById('deposit-amount').value = v;
+}
+
+async function handleDeposit() {
+  const amtEl = document.getElementById('deposit-amount');
+  const btn = document.getElementById('deposit-btn');
+  const resultEl = document.getElementById('deposit-result');
+  const txEl = document.getElementById('deposit-tx-hash');
+
+  const amt = parseFloat(amtEl.value);
+  if (isNaN(amt) || amt <= 0) {
+    showToast('Invalid Amount', 'Enter a valid BTC amount.', 'error');
+    return;
+  }
+
+  resultEl.classList.remove('visible');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="btn-loading"><span class="spinner visible"></span> Broadcasting...</span>';
+
+  try {
+    const res = await depositBTC(amt);
+    const url = `${OPNET_TESTNET.explorer}/tx/${res.txHash}`;
+    txEl.innerHTML = `TX: <a href="${url}" target="_blank" rel="noopener">${res.txHash.slice(0, 40)}...</a>`;
+    resultEl.classList.add('visible');
+    amtEl.value = '';
+
+    showToast('Deposit Confirmed', `+${amt} BTC deposited to vault`, 'success');
+    addActivity('deposit', res.txHash, `+${amt} BTC`);
+    refreshOverview();
+  } catch (err) {
+    showToast('Deposit Failed', err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Deposit BTC';
+  }
+}
+
+// ─── WITHDRAW ──────────────────────────────────────────────────────────────
+
+async function refreshWithdraw() {
+  try {
+    const state = await getVaultState();
+    const blockedEl = document.getElementById('withdraw-blocked');
+    const formEl = document.getElementById('withdraw-form');
+    const balEl = document.getElementById('wd-balance');
+    const expEl = document.getElementById('withdraw-blocked-expiry');
+
+    if (balEl) balEl.textContent = parseFloat(state.balance).toFixed(8) + ' BTC';
+
+    if (state.locked) {
+      if (blockedEl) blockedEl.classList.add('visible');
+      if (formEl) formEl.style.display = 'none';
+      if (expEl) {
+        const d = new Date(state.lockExpiry);
+        expEl.textContent = `Locked until: ${d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' })}`;
+      }
+    } else {
+      if (blockedEl) blockedEl.classList.remove('visible');
+      if (formEl) formEl.style.display = 'block';
+    }
+  } catch {}
+}
+
+function setMaxWithdraw() {
+  const vault = JSON.parse(localStorage.getItem('opnet_vault') || '{}');
+  document.getElementById('withdraw-amount').value = vault.balance || 0;
+}
+
+async function handleWithdraw() {
+  const amtEl = document.getElementById('withdraw-amount');
+  const btn = document.getElementById('withdraw-btn');
+  const resultEl = document.getElementById('withdraw-result');
+  const txEl = document.getElementById('withdraw-tx-hash');
+
+  const amt = parseFloat(amtEl.value);
+  if (isNaN(amt) || amt <= 0) {
+    showToast('Invalid Amount', 'Enter a valid BTC amount.', 'error');
+    return;
+  }
+
+  resultEl.classList.remove('visible');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="btn-loading"><span class="spinner visible"></span> Processing...</span>';
+
+  try {
+    const res = await withdrawBTC(amt);
+    const url = `${OPNET_TESTNET.explorer}/tx/${res.txHash}`;
+    txEl.innerHTML = `TX: <a href="${url}" target="_blank" rel="noopener">${res.txHash.slice(0, 40)}...</a>`;
+    resultEl.classList.add('visible');
+    amtEl.value = '';
+
+    showToast('Withdrawal Confirmed', `-${amt} BTC withdrawn from vault`, 'success');
+    addActivity('withdraw', res.txHash, `-${amt} BTC`);
+    refreshOverview();
+    refreshWithdraw();
+  } catch (err) {
+    showToast('Withdrawal Failed', err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Withdraw BTC';
+  }
+}
+
+// ─── LOCK VAULT ────────────────────────────────────────────────────────────
+
+async function refreshLock() {
+  try {
+    const state = await getVaultState();
+    const blockedEl = document.getElementById('lock-blocked');
+    const formEl = document.getElementById('lock-form');
+    const expEl = document.getElementById('lock-blocked-expiry');
+
+    if (state.locked) {
+      if (blockedEl) blockedEl.classList.add('visible');
+      if (formEl) formEl.style.display = 'none';
+      if (expEl) {
+        const d = new Date(state.lockExpiry);
+        expEl.textContent = `Lock expires: ${d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' })}`;
+      }
+    } else {
+      if (blockedEl) blockedEl.classList.remove('visible');
+      if (formEl) formEl.style.display = 'block';
+    }
+  } catch {}
+}
+
+function selectDuration(days) {
+  selectedDuration = days;
+  document.querySelectorAll('.duration-btn').forEach(b => b.classList.remove('selected'));
+  const btn = document.getElementById('dur-' + days);
+  if (btn) btn.classList.add('selected');
+
+  const preview = document.getElementById('lock-preview');
+  const previewDate = document.getElementById('lock-preview-date');
+  if (preview) preview.textContent = `${days} Days`;
+  if (previewDate) {
+    const exp = new Date(Date.now() + days * 86400000);
+    previewDate.textContent = `Unlocks: ${exp.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' })}`;
+  }
+}
+
+async function handleLock() {
+  if (!selectedDuration) {
+    showToast('No Duration', 'Please select a lock duration.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('lock-btn');
+  const resultEl = document.getElementById('lock-result');
+  const txEl = document.getElementById('lock-tx-hash');
+
+  resultEl.classList.remove('visible');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="btn-loading"><span class="spinner visible"></span> Locking Vault...</span>';
+
+  try {
+    const res = await lockVault(selectedDuration);
+    const url = `${OPNET_TESTNET.explorer}/tx/${res.txHash}`;
+    txEl.innerHTML = `TX: <a href="${url}" target="_blank" rel="noopener">${res.txHash.slice(0, 40)}...</a>`;
+    resultEl.classList.add('visible');
+
+    showToast('Vault Locked', `Locked for ${selectedDuration} days`, 'success');
+    addActivity('lock', res.txHash, `${selectedDuration}d lock`);
+    selectedDuration = null;
+    document.querySelectorAll('.duration-btn').forEach(b => b.classList.remove('selected'));
+    refreshOverview();
+    refreshLock();
+  } catch (err) {
+    showToast('Lock Failed', err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Lock Vault';
+  }
+}
+
+// ─── ACTIVITY LOG ──────────────────────────────────────────────────────────
+
+function addActivity(type, txHash, detail) {
+  activityLog.unshift({
+    type,
+    txHash,
+    detail,
+    time: Date.now()
+  });
+  if (activityLog.length > 50) activityLog = activityLog.slice(0, 50);
+  localStorage.setItem('opnet_activity', JSON.stringify(activityLog));
+}
+
+function renderActivity() {
+  const container = document.getElementById('activity-list');
+  if (!container) return;
+
+  if (activityLog.length === 0) {
+    container.innerHTML = '<div class="activity-empty">No transactions yet.</div>';
+    return;
+  }
+
+  container.innerHTML = activityLog.map(item => {
+    const d = new Date(item.time);
+    const timeStr = d.toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+    const url = `${OPNET_TESTNET.explorer}/tx/${item.txHash}`;
+    const short = item.txHash.slice(0, 20) + '...' + item.txHash.slice(-8);
+    return `
+      <div class="activity-item">
+        <span class="activity-type ${item.type}">${item.type.toUpperCase()}</span>
+        <span class="activity-hash">
+          <a href="${url}" target="_blank" rel="noopener">${short}</a>
+          <span style="color:var(--text-muted);margin-left:6px;">${item.detail}</span>
+        </span>
+        <span class="activity-time">${timeStr}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// ─── BOOT ──────────────────────────────────────────────────────────────────
+initDashboard();
+</script>
+
+</body>
+</html>
