@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OrangeShield — Vault Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .vault-hero {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .vault-hero::before {
+      content: '';
+      position: absolute;
+      right: -40px; top: -40px;
+      width: 200px; height: 200px;
+      background: radial-gradient(circle, rgba(247,147,26,0.12), transparent 70%);
+      pointer-events: none;
+    }
+    .vault-hero-btc {
+      font-size: 48px;
+      font-weight: 800;
+      font-family: var(--font-display);
+      color: var(--text);
+      line-height: 1;
+    }
+    .vault-hero-btc span { color: var(--orange); font-size: 24px; vertical-align: top; }
+    .vault-hero-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .vault-hero-right { text-align: right; }
+    .vault-hero-right .addr {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Deploy CTA */
+    #deploy-section {
+      display: none;
+    }
+    .deploy-cta {
+      background: var(--bg-card);
+      border: 1px solid var(--border-bright);
+      border-radius: var(--radius-lg);
+      padding: 48px;
+      text-align: center;
+    }
+    .deploy-cta-icon { font-size: 48px; margin-bottom: 16px; }
+    .deploy-cta h2 { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
+    .deploy-cta p { color: var(--text-muted); font-size: 14px; margin-bottom: 28px; max-width: 400px; margin-left: auto; margin-right: auto; }
+    .deploy-cost {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 8px 16px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    /* Main content */
+    #main-content { display: none; }
+
+    /* Panel layout */
+    .panel-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 720px) {
+      .panel-split { grid-template-columns: 1fr; }
+    }
+
+    /* Lock panel */
+    .lock-active-info {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .lock-active-info .lock-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      padding: 4px 0;
+    }
+    .lock-active-info .lock-row span:first-child { color: var(--text-muted); }
+    .lock-active-info .lock-row span:last-child { font-family: var(--font-mono); }
+
+    /* Network status bar */
+    .network-bar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 16px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .network-item { display: flex; align-items: center; gap: 6px; }
+    .network-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--success); box-shadow: 0 0 4px var(--success); }
+
+    /* Overview grid */
+    .ov-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 480px) { .ov-grid { grid-template-columns: 1fr; } }
+    .ov-item {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+    }
+    .ov-item-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 6px; }
+    .ov-item-value { font-size: 14px; font-weight: 700; font-family: var(--font-mono); }
+  </style>
+</head>
+<body data-page="dashboard">
+
+  <!-- Page Loader -->
+  <div class="page-loader" id="page-loader">
+    <div class="brand-icon" style="width:48px;height:48px;font-size:24px;border-radius:12px;background:var(--orange);display:flex;align-items:center;justify-content:center;">₿</div>
+    <div style="display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:13px;">
+      <div class="spinner light"></div>
+      Loading vault state...
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="index.html" class="brand">
+        <div class="brand-icon">₿</div>
+        <span class="brand-name">Orange<span>Shield</span></span>
+      </a>
+      <div class="navbar-actions">
+        <div class="wallet-badge">
+          <span class="wallet-dot"></span>
+          <span id="nav-wallet">bc1q...</span>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="disconnect-btn">Disconnect</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="page-wrap">
+    <div class="dashboard">
+
+      <!-- Network Bar -->
+      <div class="network-bar">
+        <div class="network-item"><span class="network-dot"></span> OP_NET Mainnet</div>
+        <div class="network-item">Block #<span id="block-num">—</span></div>
+        <div class="network-item">Contract: <span id="contract-address">—</span></div>
+        <div class="network-item" style="margin-left: auto;">
+          <button class="btn btn-danger btn-sm" id="reset-btn" style="font-size:10px;padding:4px 10px;">Reset Vault</button>
+        </div>
+      </div>
+
+      <!-- Dashboard Header -->
+      <div class="dashboard-header">
+        <div>
+          <div class="text-muted" style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">Conviction Vault</div>
+          <h1 class="dashboard-title">OrangeShield Dashboard</h1>
+        </div>
+      </div>
+
+      <!-- ══ DEPLOY SECTION ══════════════════════════════════════════════════ -->
+      <div id="deploy-section">
+        <div class="deploy-cta">
+          <div class="deploy-cta-icon">🚀</div>
+          <h2>Deploy Your Vault</h2>
+          <p>Deploy your personal OrangeShield smart contract to OP_NET to start securing your BTC conviction.</p>
+          <div>
+            <div class="deploy-cost">⛽ Est. Deploy Fee: 0.00004200 BTC</div>
+          </div>
+          <button class="btn btn-primary btn-lg" id="deploy-btn">
+            <span id="deploy-spinner" class="spinner" style="display:none;"></span>
+            Deploy OrangeShield Contract
+          </button>
+        </div>
+      </div>
+
+      <!-- ══ MAIN DASHBOARD ══════════════════════════════════════════════════ -->
+      <div id="main-content">
+
+        <!-- Vault Hero -->
+        <div class="vault-hero">
+          <div>
+            <div class="vault-hero-label">Vault Balance</div>
+            <div class="vault-hero-btc"><span>₿ </span><span id="vault-balance">0.00000000</span></div>
+            <div style="margin-top:10px;" id="lock-status">
+              <span class="badge badge-unlocked">🔓 Unlocked</span>
+            </div>
+          </div>
+          <div class="vault-hero-right">
+            <div class="vault-hero-label">Wallet</div>
+            <div class="addr" id="wallet-address">—</div>
+            <div style="margin-top:8px;" class="vault-hero-label">Last TX</div>
+            <div class="addr" id="last-tx">—</div>
+          </div>
+        </div>
+
+        <!-- Tab Nav -->
+        <div class="tab-nav">
+          <button class="tab-btn active" data-tab="tab-overview">📊 Overview</button>
+          <button class="tab-btn" data-tab="tab-deposit">⬇️ Deposit</button>
+          <button class="tab-btn" data-tab="tab-withdraw">⬆️ Withdraw</button>
+          <button class="tab-btn" data-tab="tab-lock">🔒 Lock Vault</button>
+          <button class="tab-btn" data-tab="tab-history">📋 History</button>
+        </div>
+
+        <!-- ── Overview ──────────────────────────────────────── -->
+        <div class="tab-panel active" id="tab-overview">
+          <div class="section">
+            <div class="section-header">
+              <h2 class="section-title">Vault Overview</h2>
+            </div>
+
+            <div class="ov-grid">
+              <div class="ov-item">
+                <div class="ov-item-label">Balance</div>
+                <div class="ov-item-value text-orange" id="ov-balance">0.00000000 BTC</div>
+              </div>
+              <div class="ov-item">
+                <div class="ov-item-label">Status</div>
+                <div class="ov-item-value" id="ov-status"><span class="badge badge-unlocked">Unlocked</span></div>
+              </div>
+              <div class="ov-item" style="grid-column: span 2;">
+                <div class="ov-item-label">Lock Expiry</div>
+                <div class="ov-item-value" id="ov-expiry">—</div>
+              </div>
+            </div>
+
+            <div class="card" style="margin-bottom:0;">
+              <div class="card-header">
+                <span class="card-title">⏱ Lock Countdown</span>
+                <span class="badge badge-orange">LIVE</span>
+              </div>
+              <div class="countdown" id="countdown">
+                <span class="badge badge-unlocked">🔓 No active lock</span>
+              </div>
+              <div style="margin-top:12px;font-size:11px;color:var(--text-muted);">
+                Expiry: <span id="expiry-date">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Deposit ────────────────────────────────────────── -->
+        <div class="tab-panel" id="tab-deposit">
+          <div class="section">
+            <div class="section-header">
+              <h2 class="section-title">Deposit BTC</h2>
+            </div>
+
+            <div class="card">
+              <div class="info-box" style="margin-bottom:20px;">
+                <span>ℹ️</span>
+                <div>Depositing sends BTC into your OP_NET smart contract vault. Funds are self-custodied and non-custodial.</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Amount (BTC)</label>
+                <div class="input-with-suffix">
+                  <input
+                    type="number"
+                    class="form-input"
+                    id="deposit-amount"
+                    placeholder="0.00000000"
+                    step="0.00000001"
+                    min="0.00000001"
+                  />
+                  <span class="input-suffix">BTC</span>
+                </div>
+              </div>
+
+              <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+                <button class="btn btn-ghost btn-sm" onclick="document.getElementById('deposit-amount').value='0.001'">0.001</button>
+                <button class="btn btn-ghost btn-sm" onclick="document.getElementById('deposit-amount').value='0.01'">0.01</button>
+                <button class="btn btn-ghost btn-sm" onclick="document.getElementById('deposit-amount').value='0.1'">0.1</button>
+                <button class="btn btn-ghost btn-sm" onclick="document.getElementById('deposit-amount').value='1'">1 BTC</button>
+              </div>
+
+              <button class="btn btn-primary btn-full btn-lg" id="deposit-btn">
+                <span id="deposit-spinner" class="spinner" style="display:none;"></span>
+                Deposit BTC
+              </button>
+
+              <div class="tx-status-box" id="deposit-status"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Withdraw ───────────────────────────────────────── -->
+        <div class="tab-panel" id="tab-withdraw">
+          <div class="section">
+            <div class="section-header">
+              <h2 class="section-title">Withdraw BTC</h2>
+            </div>
+
+            <div class="card">
+              <div class="warning-box" id="withdraw-locked-msg" style="display:none;margin-bottom:20px;">
+                <span>🔒</span>
+                <div>
+                  <strong style="display:block;margin-bottom:4px;">Vault is Locked</strong>
+                  Withdrawals are blocked until the timelock expires. This is enforced by the smart contract.
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Amount (BTC)</label>
+                <div class="input-with-suffix">
+                  <input
+                    type="number"
+                    class="form-input"
+                    id="withdraw-amount"
+                    placeholder="0.00000000"
+                    step="0.00000001"
+                    min="0.00000001"
+                  />
+                  <span class="input-suffix">BTC</span>
+                </div>
+              </div>
+
+              <button class="btn btn-outline btn-full btn-lg" id="withdraw-btn">
+                <span id="withdraw-spinner" class="spinner light" style="display:none;"></span>
+                Withdraw BTC
+              </button>
+
+              <div class="tx-status-box" id="withdraw-status"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Lock Vault ─────────────────────────────────────── -->
+        <div class="tab-panel" id="tab-lock">
+          <div class="section">
+            <div class="section-header">
+              <h2 class="section-title">Lock Vault</h2>
+            </div>
+
+            <div class="card">
+              <div class="info-box" style="margin-bottom:20px;">
+                <span>⚠️</span>
+                <div>Once locked, the smart contract enforces the timelock. No early withdrawals are possible. Choose wisely.</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Lock Duration</label>
+                <div class="duration-grid">
+                  <div class="duration-option selected" data-days="30">
+                    <span class="dur-days">30</span>
+                    <div class="dur-label">Days</div>
+                  </div>
+                  <div class="duration-option" data-days="90">
+                    <span class="dur-days">90</span>
+                    <div class="dur-label">Days</div>
+                  </div>
+                  <div class="duration-option" data-days="180">
+                    <span class="dur-days">180</span>
+                    <div class="dur-label">Days</div>
+                  </div>
+                  <div class="duration-option" data-days="365">
+                    <span class="dur-days">365</span>
+                    <div class="dur-label">Days</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="lock-active-info" id="lock-preview">
+                <div class="lock-row">
+                  <span>Lock Period</span>
+                  <span id="lock-preview-days">30 days</span>
+                </div>
+                <div class="lock-row">
+                  <span>Unlock Date</span>
+                  <span id="lock-preview-date">—</span>
+                </div>
+                <div class="lock-row">
+                  <span>Early Withdrawal</span>
+                  <span style="color:var(--error);">Blocked by Contract</span>
+                </div>
+              </div>
+
+              <button class="btn btn-primary btn-full btn-lg" id="lock-btn">
+                <span id="lock-spinner" class="spinner" style="display:none;"></span>
+                🔒 Lock Vault
+              </button>
+
+              <div class="tx-status-box" id="lock-status-box"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── History ────────────────────────────────────────── -->
+        <div class="tab-panel" id="tab-history">
+          <div class="section">
+            <div class="section-header">
+              <h2 class="section-title">Transaction History</h2>
+              <span class="badge badge-orange">On-chain</span>
+            </div>
+            <div class="tx-list" id="tx-list">
+              <div class="tx-empty">🔍 No transactions yet</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /main-content -->
+    </div><!-- /dashboard -->
+  </div><!-- /page-wrap -->
+
+  <script src="opnet-mock.js"></script>
+  <script src="app.js"></script>
+  <script>
+    // Live block number simulation
+    let block = Math.floor(Math.random() * 900000 + 100000);
+    const blockEl = document.getElementById('block-num');
+    if (blockEl) {
+      blockEl.textContent = block.toLocaleString();
+      setInterval(() => {
+        block += Math.floor(Math.random() * 3 + 1);
+        blockEl.textContent = block.toLocaleString();
+      }, 8000);
+    }
+
+    // Lock preview updater
+    const durationOpts = document.querySelectorAll('.duration-option');
+    const previewDays = document.getElementById('lock-preview-days');
+    const previewDate = document.getElementById('lock-preview-date');
+
+    function updateLockPreview(days) {
+      if (previewDays) previewDays.textContent = days + ' days';
+      if (previewDate) {
+        const d = new Date(Date.now() + days * 86400000);
+        previewDate.textContent = d.toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
+      }
+    }
+
+    updateLockPreview(30);
+
+    durationOpts.forEach(opt => {
+      opt.addEventListener('click', () => {
+        updateLockPreview(parseInt(opt.dataset.days, 10));
+      });
+    });
+  </script>
+</body>
+</html>

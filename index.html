@@ -1,92 +1,227 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>OrangeShield</title>
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OrangeShield — Bitcoin Conviction Vault</title>
+  <link rel="stylesheet" href="style.css" />
   <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0f0f0f;
-      color: white;
+    /* Floating BTC particles */
+    .particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+    .particle {
+      position: absolute;
+      color: var(--orange);
+      opacity: 0;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      animation: float-particle linear infinite;
+    }
+    @keyframes float-particle {
+      0%   { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+      10%  { opacity: 0.3; }
+      90%  { opacity: 0.15; }
+      100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+    }
+    .hero-badge-pulse {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--orange);
+      animation: badge-pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes badge-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(247,147,26,0.4); }
+      50% { box-shadow: 0 0 0 6px rgba(247,147,26,0); }
+    }
+    .stat-row {
+      display: flex;
+      gap: 40px;
+      justify-content: center;
+      margin-top: 48px;
+      flex-wrap: wrap;
+    }
+    .stat-item { text-align: center; }
+    .stat-item-val {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--orange);
+      font-family: var(--font-display);
+    }
+    .stat-item-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .how-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-top: 48px;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .how-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
       text-align: center;
+      position: relative;
     }
-
-    .container {
-      padding: 40px 20px;
+    .how-card::before {
+      content: attr(data-step);
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--orange);
+      color: #000;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 100px;
+      font-family: var(--font-mono);
     }
-
-    button {
-      padding: 12px 20px;
-      margin-top: 20px;
-      background: orange;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-
-    select {
-      padding: 10px;
-      border-radius: 6px;
-      margin-top: 10px;
-    }
-
-    .hidden {
-      display: none;
-    }
-
-    h1 {
-      color: orange;
+    .how-icon { font-size: 28px; margin-bottom: 12px; }
+    .how-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+    .how-desc { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 0;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
     }
   </style>
 </head>
-<body>
+<body data-page="index">
 
-  <!-- Welcome Screen -->
-  <div id="welcome" class="container">
-    <h1>Welcome to OrangeShield 🟠</h1>
-    <p>
-      A Bitcoin Layer 1 Conviction Vault built on OP_NET.
-    </p>
-    <p>
-      Lock your BTC. Enforce discipline. Protect your future.
-    </p>
-    <button onclick="enterApp()">Enter Vault</button>
-  </div>
+  <!-- Particles -->
+  <div class="particles" id="particles"></div>
 
-  <!-- Main App -->
-  <div id="app" class="container hidden">
-    <h1>OrangeShield Vault</h1>
+  <!-- Toast container -->
+  <div id="toast-container" class="toast-container"></div>
 
-    <p>Select Lock Duration:</p>
-    <select id="duration">
-      <option value="30">30 Days</option>
-      <option value="90">90 Days</option>
-      <option value="180">180 Days</option>
-      <option value="365">365 Days</option>
-    </select>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="index.html" class="brand">
+        <div class="brand-icon">₿</div>
+        <span class="brand-name">Orange<span>Shield</span></span>
+      </a>
+      <div class="navbar-actions">
+        <div class="wallet-badge">
+          <span class="wallet-dot disconnected" id="wallet-dot-nav"></span>
+          <span id="wallet-btn-state">Not Connected</span>
+        </div>
+        <button class="btn btn-primary btn-sm" id="connect-btn-2">Connect Wallet</button>
+      </div>
+    </div>
+  </nav>
 
-    <br />
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-glow"></div>
+    <div class="hero-content">
 
-    <button onclick="lockBTC()">Lock BTC</button>
+      <div class="hero-eyebrow">
+        <span class="hero-badge-pulse"></span>
+        Built on OP_NET · Bitcoin L1
+      </div>
 
-    <p id="result"></p>
-  </div>
+      <h1 class="hero-title">
+        Hold with<br><span class="accent">Iron Conviction</span>
+      </h1>
 
+      <p class="hero-sub">
+        OrangeShield is a time-locked BTC vault deployed on OP_NET.
+        Enforce your hodl strategy with smart contract certainty.
+        No early exits. No exceptions.
+      </p>
+
+      <div class="hero-ctas">
+        <button class="btn btn-primary btn-lg" id="connect-btn">
+          Connect Wallet
+        </button>
+        <a href="dashboard.html" class="btn btn-outline btn-lg">View Dashboard</a>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-item">
+          <div class="stat-item-val">100%</div>
+          <div class="stat-item-label">Bitcoin Native</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-item-val">0</div>
+          <div class="stat-item-label">Custodians</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-item-val">∞</div>
+          <div class="stat-item-label">Conviction</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-item-val">OP_NET</div>
+          <div class="stat-item-label">Protocol</div>
+        </div>
+      </div>
+
+      <!-- How it works -->
+      <div style="margin-top: 80px; padding-top: 60px; border-top: 1px solid var(--border);">
+        <div class="text-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px;">How It Works</div>
+        <h2 style="font-size: 24px; font-weight: 800; margin-bottom: 4px;">Three steps to conviction</h2>
+        <div class="how-grid">
+          <div class="how-card" data-step="01">
+            <div class="how-icon">🔌</div>
+            <div class="how-title">Connect Wallet</div>
+            <div class="how-desc">Link your Bitcoin wallet to access the OP_NET contract layer.</div>
+          </div>
+          <div class="how-card" data-step="02">
+            <div class="how-icon">₿</div>
+            <div class="how-title">Deposit BTC</div>
+            <div class="how-desc">Send BTC into the vault smart contract. Full self-custody.</div>
+          </div>
+          <div class="how-card" data-step="03">
+            <div class="how-icon">🔒</div>
+            <div class="how-title">Lock & Hold</div>
+            <div class="how-desc">Set a timelock from 30 to 365 days. The contract enforces it.</div>
+          </div>
+          <div class="how-card" data-step="04">
+            <div class="how-icon">🎯</div>
+            <div class="how-title">Withdraw at Expiry</div>
+            <div class="how-desc">Once the lock expires, withdraw with full conviction achieved.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="page-wrap">
+      OrangeShield v3 &nbsp;·&nbsp; Built on OP_NET &nbsp;·&nbsp; Bitcoin L1
+      &nbsp;·&nbsp; <span class="text-orange">₿</span>
+    </div>
+  </footer>
+
+  <script src="opnet-mock.js"></script>
+  <script src="app.js"></script>
   <script>
-    function enterApp() {
-      document.getElementById("welcome").classList.add("hidden");
-      document.getElementById("app").classList.remove("hidden");
-    }
-
-    function lockBTC() {
-      const duration = document.getElementById("duration").value;
-      document.getElementById("result").innerText =
-        "BTC locked for " + duration + " days on OP_NET testnet (simulation).";
+    // Generate floating BTC particles
+    const container = document.getElementById('particles');
+    const symbols = ['₿', '0x', '01', 'BTC', '∞', '#', '🔒'];
+    for (let i = 0; i < 18; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+      p.style.left = Math.random() * 100 + '%';
+      p.style.animationDuration = (12 + Math.random() * 20) + 's';
+      p.style.animationDelay = (Math.random() * 15) + 's';
+      p.style.fontSize = (10 + Math.random() * 10) + 'px';
+      container.appendChild(p);
     }
   </script>
-
 </body>
-  </html>
+</html>
