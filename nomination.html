@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>OrangeShield — Nomination Protocol</title>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    .nom-feed { display: flex; flex-direction: column; gap: 12px; }
+    .filter-bar {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;
+    }
+    .filter-btn {
+      padding: 6px 14px; border-radius: 6px;
+      background: var(--bg3); border: 1px solid var(--border);
+      color: var(--text2); font-family: var(--display); font-weight: 600;
+      font-size: 12px; cursor: pointer; transition: all 0.15s;
+    }
+    .filter-btn.active { border-color: var(--or); color: var(--or); background: var(--or-dim); }
+    .audio-fab {
+      position: fixed; bottom: 28px; right: 28px; z-index: 200;
+      width: 52px; height: 52px;
+      background: var(--bg3); border: 1px solid var(--border2);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 22px; cursor: pointer; box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+      transition: all 0.2s;
+    }
+    .audio-fab:hover { border-color: var(--or); background: var(--or-dim); transform: scale(1.05); }
+    .audio-label {
+      position: fixed; bottom: 88px; right: 28px; z-index: 200;
+      font-family: var(--mono); font-size: 9px; letter-spacing: 1px;
+      color: var(--text3); text-align: center; white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+<div class="bg-canvas">
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+</div>
+<div class="grid-overlay"></div>
+<div id="toasts"></div>
+
+<header class="topbar">
+  <a href="index.html" class="topbar-logo">
+    <div class="logo-mark">🛡</div>
+    ORANGE<span style="color:var(--text3);font-weight:400">SHIELD</span>
+  </a>
+  <div class="topbar-right">
+    <span class="wallet-chip" id="wallet-chip"></span>
+    <span class="net-badge">⬡ OP_NET TESTNET</span>
+    <a href="dashboard.html" class="btn btn-ghost btn-sm">Dashboard</a>
+  </div>
+</header>
+
+<!-- Audio FAB -->
+<div class="audio-label" id="audio-label">AMBIENT</div>
+<button class="audio-fab" id="audio-fab" title="Toggle ambient audio" onclick="toggleAudio(this)">🔇</button>
+
+<div class="app-shell" style="padding-top:var(--topbar-h);">
+  <div style="max-width:1060px;margin:0 auto;padding:28px 24px;">
+    <div class="breadcrumb">
+      <a href="index.html">Home</a><span class="breadcrumb-sep">/</span>
+      <a href="dashboard.html">Dashboard</a><span class="breadcrumb-sep">/</span>
+      <span class="breadcrumb-current">Nomination Protocol</span>
+    </div>
+    <div class="page-hdr">
+      <div class="page-title">Nomination <span>Protocol</span></div>
+      <div class="page-sub">Nominate · Stake · Vote · Govern · OP_NET Testnet</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:360px 1fr;gap:24px;">
+
+      <!-- Left: Submit form -->
+      <div>
+        <div class="card card-glow" style="padding:26px;">
+          <div style="font-size:17px;font-weight:700;letter-spacing:1px;margin-bottom:20px;color:var(--or);">
+            + Submit Nomination
+          </div>
+          <div class="field">
+            <label class="field-label">Project / Protocol Name</label>
+            <input type="text" class="field-input" id="nom-name" placeholder="e.g. SatoshiSwap"/>
+          </div>
+          <div class="field">
+            <label class="field-label">Address to Nominate</label>
+            <input type="text" class="field-input" id="nom-addr" placeholder="Bitcoin or OP_NET address"/>
+          </div>
+          <div class="field">
+            <label class="field-label">Description</label>
+            <textarea class="field-textarea" id="nom-desc" placeholder="Why should this project be recognized by the OP_NET ecosystem?"></textarea>
+          </div>
+          <div class="field">
+            <label class="field-label">Stake Amount (BTC)</label>
+            <div class="input-wrap">
+              <input type="number" class="field-input" id="nom-stake" placeholder="0.001" step="0.0001" min="0.0001"/>
+              <span class="input-unit">BTC</span>
+            </div>
+          </div>
+          <div class="quick-pills">
+            <span class="pill" onclick="document.getElementById('nom-stake').value='0.001'">0.001</span>
+            <span class="pill" onclick="document.getElementById('nom-stake').value='0.005'">0.005</span>
+            <span class="pill" onclick="document.getElementById('nom-stake').value='0.01'">0.01</span>
+          </div>
+          <button class="btn btn-primary btn-full" id="nom-btn" onclick="handleNominate()">
+            Submit Nomination
+          </button>
+          <div class="tx-box" id="nom-tx"><div class="tx-lbl">✔ Nomination Submitted</div><div class="tx-hash"></div></div>
+          <div style="margin-top:14px;padding:12px;background:var(--or-dim);border:1px solid var(--border2);border-radius:8px;">
+            <p style="font-family:var(--mono);font-size:9px;color:var(--text3);line-height:1.7;letter-spacing:0.5px;">
+              Nominations cost BTC stake deducted from vault balance.<br/>
+              Earn +200 pts per nomination · +25 pts per vote cast.<br/>
+              Nominations with most votes gain ecosystem recognition.
+            </p>
+          </div>
+        </div>
+
+        <!-- My nominations -->
+        <div class="card" style="padding:20px;margin-top:14px;">
+          <div style="font-size:14px;font-weight:700;margin-bottom:12px;">My Nominations</div>
+          <div id="my-noms">
+            <div style="font-family:var(--mono);font-size:11px;color:var(--text3);text-align:center;padding:16px;">
+              None submitted yet.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Feed -->
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+          <div style="font-size:16px;font-weight:700;letter-spacing:1px;">Active Nominations</div>
+          <div class="filter-bar" style="margin-bottom:0;">
+            <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+            <button class="filter-btn" onclick="setFilter('mine',this)">Mine</button>
+            <button class="filter-btn" onclick="setFilter('top',this)">Top Voted</button>
+          </div>
+        </div>
+        <div class="nom-feed" id="nom-list">
+          <div style="padding:40px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--text3);">
+            No nominations yet. Be the first to nominate a project.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="wallet.js"></script>
+<script src="opnet-testnet.js"></script>
+<script src="app.js"></script>
+<script>
+let _allNoms = [];
+let _filter  = 'all';
+
+function setFilter(f, btn) {
+  _filter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderNoms();
+}
+
+function renderNoms() {
+  const addr = WalletManager.getAddress();
+  let list = [..._allNoms];
+
+  if (_filter === 'mine')  list = list.filter(n => n.nominator === addr);
+  if (_filter === 'top')   list = list.sort((a,b) => b.votes - a.votes);
+
+  const cont = document.getElementById('nom-list');
+  if (list.length === 0) {
+    cont.innerHTML = '<div style="padding:40px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--text3);">No nominations found.</div>';
+    return;
+  }
+
+  cont.innerHTML = list.map(n => {
+    const voted  = n.voters && n.voters.includes(addr);
+    const isMine = n.nominator === addr;
+    const date   = new Date(n.ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    return `
+    <div class="card nom-card" style="padding:18px 20px;">
+      <div class="nom-avatar" style="${isMine ? 'border-color:var(--or);background:var(--or-dim);' : ''}">
+        ${n.name[0].toUpperCase()}
+      </div>
+      <div class="nom-info">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div class="nom-name">${n.name}</div>
+          ${isMine ? '<span class="badge badge-or" style="font-size:8px;padding:2px 8px;">MINE</span>' : ''}
+        </div>
+        <div class="nom-desc">${n.description}</div>
+        <div style="display:flex;gap:12px;margin-top:4px;flex-wrap:wrap;">
+          <div class="nom-addr">${n.address.slice(0,20)}…</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text3);">Stake: ${n.stake} BTC</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text3);">${date}</div>
+        </div>
+      </div>
+      <div class="nom-actions" style="flex-direction:column;text-align:center;min-width:80px;">
+        <div class="vote-count">${n.votes}</div>
+        <div class="vote-lbl">votes</div>
+        <button class="btn btn-sm ${voted ? 'btn-ghost' : 'btn-outline'}" style="margin-top:8px;min-width:72px;"
+          onclick="handleVote('${n.id}')" ${voted ? 'disabled' : ''}>
+          ${voted ? '✔ Voted' : '↑ Vote'}
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderMyNoms() {
+  const addr = WalletManager.getAddress();
+  const mine = _allNoms.filter(n => n.nominator === addr);
+  const cont = document.getElementById('my-noms');
+  if (mine.length === 0) {
+    cont.innerHTML = '<div style="font-family:var(--mono);font-size:11px;color:var(--text3);text-align:center;padding:16px;">None submitted yet.</div>';
+  } else {
+    cont.innerHTML = mine.slice(0,5).map(n => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+        <div>
+          <div style="font-size:13px;font-weight:600;">${n.name}</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text3);">Stake: ${n.stake} BTC</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--or);">${n.votes}</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text3);">votes</div>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+async function handleNominate() {
+  const name  = document.getElementById('nom-name').value.trim();
+  const addr  = document.getElementById('nom-addr').value.trim();
+  const desc  = document.getElementById('nom-desc').value.trim();
+  const stake = document.getElementById('nom-stake').value;
+  if (!name || !addr || !desc || !stake) { toast('Missing Fields', 'All fields are required', 'err'); return; }
+  const btn = document.getElementById('nom-btn');
+  hideTxBox('nom-tx');
+  setBtnLoading(btn, 'Submitting...');
+  try {
+    const res = await submitNomination({ name, nomAddr: addr, description: desc, stake });
+    showTxBox('nom-tx', res.txHash);
+    ['nom-name','nom-addr','nom-desc','nom-stake'].forEach(id => document.getElementById(id).value = '');
+    toast('Nomination Submitted!', name + ' is live', 'ok');
+    await initPage();
+  } catch(e) { toast('Failed', e.message, 'err'); }
+  finally { setBtnDone(btn); }
+}
+
+async function handleVote(id) {
+  try {
+    await voteNomination(id);
+    toast('Vote Cast!', '+25 points earned', 'ok');
+    await initPage();
+  } catch(e) { toast('Vote Failed', e.message, 'err'); }
+}
+
+async function initPage() {
+  const res = await getAllNominations();
+  _allNoms = res.nominations || [];
+  renderNoms();
+  renderMyNoms();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (WalletManager.isConnected()) initPage();
+
+  // Update audio fab label on toggle
+  const fab = document.getElementById('audio-fab');
+  if (fab) {
+    const origToggle = window.toggleAudio;
+    window.toggleAudio = function(btn) {
+      origToggle(btn || fab);
+    };
+  }
+});
+</script>
+</body>
+</html>

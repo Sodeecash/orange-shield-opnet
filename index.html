@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OrangeShield — Bitcoin Conviction Infrastructure on OP_NET</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Auto-redirect banner */
+    .reconnect-bar {
+      position: fixed; top: var(--topbar-h); left: 0; right: 0; z-index: 150;
+      background: rgba(247,147,26,0.12); border-bottom: 1px solid var(--border2);
+      padding: 10px 24px; text-align: center;
+      font-family: var(--mono); font-size: 12px; color: var(--or);
+      display: none;
+    }
+    .reconnect-bar.show { display: block; }
+    .reconnect-bar a { color: var(--or); font-weight: 700; text-decoration: underline; }
+  </style>
+</head>
+<body>
+<div class="bg-canvas">
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+  <div class="bg-orb bg-orb-3"></div>
+</div>
+<div class="grid-overlay"></div>
+<div id="toasts"></div>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <a href="index.html" class="topbar-logo">
+    <div class="logo-mark">🛡</div>
+    ORANGE<span style="color:var(--text3);font-weight:400">SHIELD</span>
+  </a>
+  <div class="topbar-right">
+    <span class="net-badge">⬡ OP_NET TESTNET</span>
+    <a href="dashboard.html" class="btn btn-outline btn-sm">Launch App</a>
+  </div>
+</header>
+
+<!-- RECONNECT BAR -->
+<div class="reconnect-bar" id="reconnect-bar">
+  Wallet session detected. <a href="dashboard.html">→ Resume Dashboard</a>
+</div>
+
+<!-- LANDING -->
+<div class="landing" style="padding-top: var(--topbar-h);">
+
+  <!-- HERO -->
+  <section class="hero-section">
+    <div class="hero-eyebrow">⬡ Live on OP_NET Testnet · Built for Bitcoin Layer 1</div>
+
+    <div class="hero-shield">
+      <svg viewBox="0 0 140 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="sg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#f7931a"/>
+            <stop offset="100%" stop-color="#c97616"/>
+          </linearGradient>
+          <filter id="glow2">
+            <feGaussianBlur stdDeviation="4" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <path d="M70 8 L128 34 L128 86 C128 122 70 152 70 152 C70 152 12 122 12 86 L12 34 Z"
+          fill="url(#sg)" opacity="0.12"/>
+        <path d="M70 8 L128 34 L128 86 C128 122 70 152 70 152 C70 152 12 122 12 86 L12 34 Z"
+          fill="none" stroke="#f7931a" stroke-width="2" filter="url(#glow2)"/>
+        <path d="M70 18 L118 40 L118 84 C118 114 70 140 70 140 C70 140 22 114 22 84 L22 40 Z"
+          fill="none" stroke="rgba(247,147,26,0.2)" stroke-width="1"/>
+        <text x="70" y="104" text-anchor="middle" font-family="Syne,sans-serif"
+          font-weight="800" font-size="58" fill="#f7931a" filter="url(#glow2)">₿</text>
+      </svg>
+    </div>
+
+    <h1 class="hero-title">
+      Orange<span class="accent">Shield</span><br/>
+      <span class="dim" style="font-size:40%;letter-spacing:4px;">Protocol</span>
+    </h1>
+    <p class="hero-tagline">
+      Bitcoin Conviction Infrastructure on OP_NET.<br/>
+      Time-lock your BTC. Earn rewards. Power the ecosystem.
+    </p>
+
+    <div class="hero-cta">
+      <a href="dashboard.html" class="btn btn-primary" style="font-size:15px;padding:16px 44px;">
+        Launch App →
+      </a>
+      <a href="#features" class="btn btn-ghost" style="font-size:14px;padding:16px 32px;">
+        Explore Features
+      </a>
+    </div>
+
+    <div class="hero-stats">
+      <div>
+        <div class="hero-stat-val">5</div>
+        <div class="hero-stat-lbl">dApps</div>
+      </div>
+      <div>
+        <div class="hero-stat-val">4</div>
+        <div class="hero-stat-lbl">Lock Tiers</div>
+      </div>
+      <div>
+        <div class="hero-stat-val">∞</div>
+        <div class="hero-stat-lbl">Rewards</div>
+      </div>
+      <div>
+        <div class="hero-stat-val">BTC</div>
+        <div class="hero-stat-lbl">Native Asset</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="features-section" id="features">
+    <h2 class="features-title">Ecosystem <span>Modules</span></h2>
+    <p class="features-sub">Five integrated protocols. One conviction layer.</p>
+
+    <div class="feat-grid">
+      <div class="card card-glow feat-card">
+        <span class="feat-ico">🔒</span>
+        <span class="feat-tag">LIVE</span>
+        <div class="feat-title">Time-Locked Vault</div>
+        <p class="feat-desc">
+          Deposit BTC and lock it for 30, 90, 180, or 365 days. 
+          Non-custodial. Smart contract enforced.
+          The longer you lock, the more you earn.
+        </p>
+      </div>
+
+      <div class="card card-glow feat-card">
+        <span class="feat-ico">⚡</span>
+        <span class="feat-tag">LIVE</span>
+        <div class="feat-title">Rewards Engine</div>
+        <p class="feat-desc">
+          Earn points for every action — deposits, locks, referrals, nominations.
+          Climb from Bronze to Diamond tier.
+          Unlock future airdrop multipliers.
+        </p>
+      </div>
+
+      <div class="card card-glow feat-card">
+        <span class="feat-ico">🔗</span>
+        <span class="feat-tag">LIVE</span>
+        <div class="feat-title">Referral Mining</div>
+        <p class="feat-desc">
+          Generate your unique referral link. 
+          Earn 0.0001 BTC per referred wallet.
+          Track your network growth in real-time.
+        </p>
+      </div>
+
+      <div class="card card-glow feat-card">
+        <span class="feat-ico">🗳</span>
+        <span class="feat-tag">LIVE</span>
+        <div class="feat-title">Nomination Protocol</div>
+        <p class="feat-desc">
+          Nominate projects and addresses for ecosystem recognition.
+          Stake BTC to back nominations.
+          Community voting with on-chain weight.
+        </p>
+      </div>
+
+      <div class="card card-glow feat-card">
+        <span class="feat-ico">🌐</span>
+        <span class="feat-tag">TESTNET</span>
+        <div class="feat-title">Multi-dApp Hub</div>
+        <p class="feat-desc">
+          One unified dashboard. All modules accessible from a single interface.
+          Consistent state across vault, rewards, referrals, and governance.
+        </p>
+      </div>
+
+      <div class="card feat-card" style="background: var(--or-dim); border-color: var(--border2);">
+        <span class="feat-ico">🚀</span>
+        <span class="feat-tag" style="background:rgba(0,229,160,0.1);color:var(--green);border-color:rgba(0,229,160,0.3);">SOON</span>
+        <div class="feat-title">Mainnet Migration</div>
+        <p class="feat-desc">
+          All testnet activity carries over to mainnet.
+          Early participants receive bonus multipliers.
+          OP_NET mainnet launch is imminent.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section style="padding: 60px 24px; max-width:900px; margin: 0 auto; text-align:center;">
+    <h2 class="features-title" style="margin-bottom:8px;">How It <span>Works</span></h2>
+    <p class="features-sub">Three steps to conviction.</p>
+    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:16px; margin-top:40px; text-align:left;">
+      <div class="card" style="padding:24px;">
+        <div style="font-size:28px;margin-bottom:12px;">01</div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px;color:var(--or);">Connect Wallet</div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.6;">
+          Connect any OP_NET-compatible wallet. UniSat, OP_NET extension, or Bitcoin-compatible provider.
+        </p>
+      </div>
+      <div class="card" style="padding:24px;">
+        <div style="font-size:28px;margin-bottom:12px;">02</div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px;color:var(--or);">Deposit & Lock</div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.6;">
+          Deposit BTC into your personal vault. Choose a lock period to maximize point accrual.
+        </p>
+      </div>
+      <div class="card" style="padding:24px;">
+        <div style="font-size:28px;margin-bottom:12px;">03</div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px;color:var(--or);">Earn & Govern</div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.6;">
+          Accumulate points, refer users, nominate projects. Shape the OP_NET ecosystem.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA BAND -->
+  <section style="padding:60px 24px; text-align:center; border-top:1px solid var(--border); border-bottom:1px solid var(--border); background:var(--or-dim);">
+    <h2 style="font-size:32px;font-weight:800;letter-spacing:2px;margin-bottom:12px;">
+      Ready to <span style="color:var(--or);">Stack Conviction</span>?
+    </h2>
+    <p style="font-family:var(--mono);font-size:13px;color:var(--text2);margin-bottom:28px;letter-spacing:1px;">
+      OrangeShield Testnet is live. Your activity carries to mainnet.
+    </p>
+    <a href="dashboard.html" class="btn btn-primary" style="font-size:16px;padding:18px 52px;">
+      Open Dashboard →
+    </a>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="landing-footer">
+    <div style="margin-bottom:12px;">
+      <span style="font-size:20px;">🛡</span>
+      <span style="color:var(--or);font-weight:700;margin-left:6px;">ORANGESHIELD</span>
+      <span style="margin-left:4px;">PROTOCOL</span>
+    </div>
+    <div>Built on <span>OP_NET Testnet</span> · Bitcoin Layer 1 · Not financial advice</div>
+    <div style="margin-top:8px;font-size:10px;">
+      <a href="dashboard.html" style="color:var(--text3);margin:0 8px;">Dashboard</a>
+      <a href="https://opnet.org" target="_blank" style="color:var(--text3);margin:0 8px;">OP_NET ↗</a>
+      <a href="https://explorer.testnet.opnet.org" target="_blank" style="color:var(--text3);margin:0 8px;">Explorer ↗</a>
+    </div>
+  </footer>
+</div>
+
+<script src="wallet.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const saved = localStorage.getItem('opnet_wallet');
+    if (saved) {
+      const bar = document.getElementById('reconnect-bar');
+      if (bar) bar.classList.add('show');
+    }
+  });
+</script>
+</body>
+</html>

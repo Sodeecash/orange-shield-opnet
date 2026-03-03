@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>OrangeShield — Dashboard</title>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    /* Mobile nav strip */
+    .mobile-strip {
+      display: none;
+      position: sticky; top: var(--topbar-h); z-index: 99;
+      background: var(--bg1);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 12px;
+      overflow-x: auto; gap: 6px;
+    }
+    @media(max-width:900px) { .mobile-strip { display: flex; } }
+    .ms-btn {
+      flex-shrink: 0; padding: 7px 14px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg2);
+      color: var(--text2); font-family: var(--display); font-weight: 600;
+      font-size: 12px; cursor: pointer; transition: all 0.15s;
+    }
+    .ms-btn.active { border-color: var(--or); color: var(--or); background: var(--or-dim); }
+  </style>
+</head>
+<body>
+<div class="bg-canvas">
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+</div>
+<div class="grid-overlay"></div>
+<div id="toasts"></div>
+
+<!-- GATE OVERLAY -->
+<div class="gate" id="gate">
+  <div class="gate-ico">🛡</div>
+  <div class="gate-title">OrangeShield Dashboard</div>
+  <div class="gate-sub">
+    Connect your OP_NET-compatible wallet to access the ecosystem hub.
+    Supports OP_NET, UniSat, Bitcoin, and EVM-compatible providers.
+  </div>
+  <button class="btn btn-primary" id="gate-connect-btn" style="font-size:15px;padding:15px 44px;">
+    Connect Wallet
+  </button>
+  <div class="wallet-req-panel" id="wallet-req-panel">
+    <h3>⚠ No Wallet Detected</h3>
+    <p>
+      OrangeShield requires a Bitcoin or OP_NET wallet extension.<br/><br/>
+      Install the <a href="https://opnet.org" target="_blank">OP_NET Wallet</a> or
+      <a href="https://unisat.io" target="_blank">UniSat Wallet</a>, then refresh.
+    </p>
+  </div>
+  <div class="err-panel" id="gate-err" style="max-width:400px;text-align:left;margin-top:0;">
+    <div class="err-title">Connection Error</div>
+    <div class="err-msg"></div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <a href="index.html" class="topbar-logo">
+    <div class="logo-mark">🛡</div>
+    ORANGE<span style="color:var(--text3);font-weight:400">SHIELD</span>
+  </a>
+  <div class="topbar-right">
+    <span class="wallet-chip" id="wallet-chip"></span>
+    <span class="net-badge">⬡ OP_NET TESTNET</span>
+  </div>
+</header>
+
+<!-- AUDIO BTN -->
+<button class="audio-btn" id="audio-btn" title="Play ambient">🔇</button>
+
+<div class="app-shell">
+
+  <!-- MOBILE STRIP -->
+  <nav class="mobile-strip">
+    <button class="ms-btn active" onclick="showSection('overview')">◈ Overview</button>
+    <button class="ms-btn" onclick="showSection('vault')">🔒 Vault</button>
+    <button class="ms-btn" onclick="showSection('rewards')">⚡ Rewards</button>
+    <button class="ms-btn" onclick="showSection('referrals')">🔗 Referrals</button>
+    <button class="ms-btn" onclick="showSection('nomination')">🗳 Nominate</button>
+    <button class="ms-btn" onclick="showSection('activity')">≡ Activity</button>
+    <button class="ms-btn" onclick="showSection('settings')">⚙ Settings</button>
+  </nav>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-profile">
+      <div class="sidebar-avatar" id="sb-avatar">?</div>
+      <div class="sidebar-addr" id="sb-addr">—</div>
+      <div class="sidebar-tier" id="sb-tier">🥉 Bronze</div>
+    </div>
+
+    <div class="nav-group-label" style="margin-bottom:8px;">Main</div>
+    <button class="nav-item active" id="nav-overview"  onclick="showSection('overview')"><span class="nav-icon">◈</span> Overview</button>
+    <button class="nav-item" id="nav-vault"      onclick="showSection('vault')"><span class="nav-icon">🔒</span> Vault</button>
+    <button class="nav-item" id="nav-rewards"    onclick="showSection('rewards')"><span class="nav-icon">⚡</span> Rewards</button>
+    <button class="nav-item" id="nav-referrals"  onclick="showSection('referrals')"><span class="nav-icon">🔗</span> Referrals</button>
+    <button class="nav-item" id="nav-nomination" onclick="showSection('nomination')"><span class="nav-icon">🗳</span> Nomination</button>
+
+    <div class="nav-group-label" style="margin-top:16px;margin-bottom:8px;">System</div>
+    <button class="nav-item" id="nav-activity" onclick="showSection('activity')"><span class="nav-icon">≡</span> Activity</button>
+    <button class="nav-item" id="nav-settings" onclick="showSection('settings')"><span class="nav-icon">⚙</span> Settings</button>
+
+    <div class="sidebar-bottom">
+      <button class="btn btn-danger btn-full btn-sm" id="nav-disconnect">
+        ⏻ Disconnect
+      </button>
+      <div style="margin-top:10px;font-family:var(--mono);font-size:9px;color:var(--text4);letter-spacing:1px;text-align:center;">
+        OP_NET TESTNET v2.0
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN WRAP -->
+  <div class="main-wrap">
+
+    <!-- ═══════════════ OVERVIEW ═══════════════ -->
+    <section class="section active" id="sec-overview">
+      <div class="breadcrumb">
+        <span>OrangeShield</span><span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-current">Overview</span>
+      </div>
+      <div class="page-hdr">
+        <div class="page-title">Vault <span>Overview</span></div>
+        <div class="page-sub">Real-time ecosystem snapshot · OP_NET Testnet</div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="card stat-card card-glow" data-icon="₿">
+          <div class="stat-label">Vault Balance</div>
+          <div class="stat-val orange" id="ov-bal">0.00000000</div>
+          <div class="stat-meta">BTC</div>
+        </div>
+        <div class="card stat-card card-glow" data-icon="🔒">
+          <div class="stat-label">Lock Status</div>
+          <div id="ov-lock-badge" class="badge badge-unlock" style="margin:8px 0;">● UNLOCKED</div>
+          <div class="stat-meta" id="ov-lock-exp">No active lock</div>
+        </div>
+        <div class="card stat-card card-glow" data-icon="⚡">
+          <div class="stat-label">Rewards Points</div>
+          <div class="stat-val blue" id="ov-pts">0</div>
+          <div class="stat-meta" id="ov-tier">Bronze Tier</div>
+        </div>
+        <div class="card stat-card card-glow" data-icon="🔗">
+          <div class="stat-label">Referral Earnings</div>
+          <div class="stat-val green" id="ov-ref-earn">0.00000000</div>
+          <div class="stat-meta">BTC earned</div>
+        </div>
+        <div class="card stat-card card-glow" data-icon="🗳">
+          <div class="stat-label">Nominations</div>
+          <div class="stat-val" id="ov-noms">0</div>
+          <div class="stat-meta">Submitted</div>
+        </div>
+        <div class="card stat-card card-glow" data-icon="📋">
+          <div class="stat-label">Last Transaction</div>
+          <div class="stat-val" id="ov-last-tx" style="font-size:13px;font-family:var(--mono);word-break:break-all;">—</div>
+          <div class="stat-meta"><a id="ov-tx-link" href="#" target="_blank" style="color:var(--or);display:none;">View ↗</a></div>
+        </div>
+      </div>
+
+      <!-- Mini vault display -->
+      <div class="card card-glow" style="padding:24px;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+          <div>
+            <div class="stat-label">Countdown to Unlock</div>
+            <div id="ov-countdown">
+              <span style="color:var(--text3);font-family:var(--mono);font-size:13px;">No active lock</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-outline btn-sm" onclick="showSection('vault')">Open Vault →</button>
+            <button class="btn btn-ghost btn-sm" onclick="showSection('rewards')">View Rewards</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ VAULT ═══════════════ -->
+    <section class="section" id="sec-vault">
+      <div class="breadcrumb">
+        <a href="#" onclick="showSection('overview')">Overview</a>
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-current">Vault</span>
+      </div>
+      <div class="page-hdr">
+        <div class="page-title"><span>Vault</span> Manager</div>
+        <div class="page-sub">Deposit · Withdraw · Lock · OP_NET Testnet</div>
+      </div>
+
+      <!-- Balance banner -->
+      <div class="card card-glow" style="padding:22px 26px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+        <div>
+          <div class="stat-label">Vault Balance</div>
+          <div style="font-size:42px;font-weight:800;color:var(--or);line-height:1;font-family:var(--mono);">
+            <span id="vt-bal">0.00000000</span>
+            <span style="font-size:18px;color:var(--text3);margin-left:6px;">BTC</span>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div id="vt-lock-badge" class="badge badge-unlock" style="margin-bottom:6px;">● UNLOCKED</div>
+          <div id="vt-lock-exp" style="font-family:var(--mono);font-size:10px;color:var(--text3);">No expiry</div>
+        </div>
+      </div>
+
+      <!-- Countdown -->
+      <div class="card" style="padding:20px;margin-bottom:20px;">
+        <div class="stat-label" style="margin-bottom:10px;">Lock Countdown</div>
+        <div id="vt-countdown"></div>
+      </div>
+
+      <!-- Three panels in grid -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;">
+
+        <!-- Deposit -->
+        <div class="card card-glow" style="padding:24px;">
+          <div style="font-size:16px;font-weight:700;margin-bottom:16px;letter-spacing:1px;">
+            ↓ Deposit BTC
+          </div>
+          <div class="field">
+            <label class="field-label">Amount</label>
+            <div class="input-wrap">
+              <input type="number" class="field-input" id="dep-amt" placeholder="0.00000000" step="0.00000001" min="0"/>
+              <span class="input-unit">BTC</span>
+            </div>
+          </div>
+          <div class="quick-pills">
+            <span class="pill" onclick="document.getElementById('dep-amt').value='0.001'">0.001</span>
+            <span class="pill" onclick="document.getElementById('dep-amt').value='0.01'">0.01</span>
+            <span class="pill" onclick="document.getElementById('dep-amt').value='0.1'">0.1</span>
+            <span class="pill" onclick="document.getElementById('dep-amt').value='1'">1 BTC</span>
+          </div>
+          <button class="btn btn-primary btn-full" id="dep-btn" onclick="handleDeposit()">Deposit BTC</button>
+          <div class="tx-box" id="dep-tx"><div class="tx-lbl">✔ Deposit Confirmed</div><div class="tx-hash"></div></div>
+        </div>
+
+        <!-- Withdraw -->
+        <div class="card card-glow" style="padding:24px;">
+          <div style="font-size:16px;font-weight:700;margin-bottom:16px;letter-spacing:1px;">
+            ↑ Withdraw BTC
+          </div>
+          <div class="err-panel show" id="wd-lock-warn" style="display:none;margin-bottom:12px;">
+            <div class="err-title">🔒 Vault Locked</div>
+            <div class="err-msg" id="wd-lock-msg">Withdrawals blocked until lock expires.</div>
+          </div>
+          <div id="wd-form">
+            <div style="background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:12px;">
+              <div class="stat-label" style="margin-bottom:2px;">Available</div>
+              <div style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--or);" id="wd-avail">0.00000000 BTC</div>
+            </div>
+            <div class="field">
+              <label class="field-label">Amount</label>
+              <div class="input-wrap">
+                <input type="number" class="field-input" id="wd-amt" placeholder="0.00000000" step="0.00000001" min="0"/>
+                <span class="input-unit">BTC</span>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm btn-full" style="margin-bottom:10px;" onclick="setMaxWd()">MAX</button>
+            <button class="btn btn-primary btn-full" id="wd-btn" onclick="handleWithdraw()">Withdraw BTC</button>
+          </div>
+          <div class="tx-box" id="wd-tx"><div class="tx-lbl">✔ Withdrawal Confirmed</div><div class="tx-hash"></div></div>
+        </div>
+
+        <!-- Lock -->
+        <div class="card card-glow" style="padding:24px;">
+          <div style="font-size:16px;font-weight:700;margin-bottom:16px;letter-spacing:1px;">
+            🔐 Lock Vault
+          </div>
+          <div class="err-panel" id="lock-already" style="display:none;margin-bottom:12px;">
+            <div class="err-title">Already Locked</div>
+            <div class="err-msg" id="lock-already-msg">Vault is locked.</div>
+          </div>
+          <div id="lock-form">
+            <div class="field-label">Duration</div>
+            <div class="dur-grid">
+              <button class="dur-btn" id="dur-30" onclick="selDur(30)">30<small>DAYS</small></button>
+              <button class="dur-btn" id="dur-90" onclick="selDur(90)">90<small>DAYS</small></button>
+              <button class="dur-btn" id="dur-180" onclick="selDur(180)">180<small>DAYS</small></button>
+              <button class="dur-btn" id="dur-365" onclick="selDur(365)">365<small>DAYS</small></button>
+            </div>
+            <div class="card" id="lock-preview-box" style="padding:12px 16px;margin-bottom:14px;display:none;">
+              <div class="stat-label" style="margin-bottom:4px;">Lock Preview</div>
+              <div id="lock-preview-txt" style="font-family:var(--mono);font-size:12px;color:var(--or);"></div>
+              <div id="lock-preview-pts" style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:2px;"></div>
+            </div>
+            <button class="btn btn-primary btn-full" id="lock-btn" onclick="handleLock()" disabled>
+              Lock Vault
+            </button>
+            <div style="margin-top:10px;padding:10px;background:var(--or-dim);border:1px solid var(--border2);border-radius:8px;">
+              <p style="font-family:var(--mono);font-size:9px;color:var(--text3);line-height:1.6;letter-spacing:0.5px;">
+                ⚠ Locking is irreversible on-chain. Withdrawals are blocked for the full period.
+              </p>
+            </div>
+          </div>
+          <div class="tx-box" id="lock-tx"><div class="tx-lbl">✔ Vault Locked</div><div class="tx-hash"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ REWARDS ═══════════════ -->
+    <section class="section" id="sec-rewards">
+      <div class="breadcrumb">
+        <a href="#" onclick="showSection('overview')">Overview</a><span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-current">Rewards</span>
+      </div>
+      <div class="page-hdr">
+        <div class="page-title">Rewards <span>Engine</span></div>
+        <div class="page-sub">Points · Tiers · Multipliers · OP_NET Testnet</div>
+      </div>
+
+      <div class="tier-cards" id="tier-cards">
+        <!-- Rendered by JS -->
+      </div>
+
+      <div class="card card-glow" style="padding:24px;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+          <div>
+            <div class="stat-label">Total Points</div>
+            <div style="font-size:48px;font-weight:800;color:var(--or);font-family:var(--mono);line-height:1;" id="rw-pts">0</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="stat-label">Current Tier</div>
+            <div id="rw-tier-name" style="font-size:22px;font-weight:700;color:var(--or);">🥉 Bronze</div>
+          </div>
+        </div>
+        <div class="tier-bar">
+          <div class="tier-track"><div class="tier-fill" id="rw-tier-fill" style="width:0%"></div></div>
+          <div class="tier-info">
+            <span id="rw-tier-min">0 pts</span>
+            <span id="rw-tier-next">500 pts to Silver</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-bottom:20px;">
+        <div class="card stat-card" data-icon="↓"><div class="stat-label">Deposit Points</div><div class="stat-val orange" id="rw-dep-pts">0</div><div class="stat-meta">1000 pts per BTC</div></div>
+        <div class="card stat-card" data-icon="🔒"><div class="stat-label">Lock Points</div><div class="stat-val blue" id="rw-lock-pts">0</div><div class="stat-meta">10 pts per day</div></div>
+        <div class="card stat-card" data-icon="🔗"><div class="stat-label">Referral Points</div><div class="stat-val green" id="rw-ref-pts">0</div><div class="stat-meta">150 pts per referral</div></div>
+        <div class="card stat-card" data-icon="🗳"><div class="stat-label">Nomination Points</div><div class="stat-val" id="rw-nom-pts">0</div><div class="stat-meta">200 pts per nom</div></div>
+      </div>
+
+      <div class="card" style="padding:20px;">
+        <div class="stat-label" style="margin-bottom:12px;">How to Earn Points</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">
+          <div style="padding:12px;background:var(--bg2);border-radius:var(--radius);font-size:13px;">
+            <div style="color:var(--or);font-weight:700;margin-bottom:4px;">Deposit BTC</div>
+            <div style="color:var(--text2);">1,000 pts per BTC deposited</div>
+          </div>
+          <div style="padding:12px;background:var(--bg2);border-radius:var(--radius);font-size:13px;">
+            <div style="color:var(--blue);font-weight:700;margin-bottom:4px;">Lock Vault</div>
+            <div style="color:var(--text2);">10 pts per lock day (300–3,650 pts)</div>
+          </div>
+          <div style="padding:12px;background:var(--bg2);border-radius:var(--radius);font-size:13px;">
+            <div style="color:var(--green);font-weight:700;margin-bottom:4px;">Refer Users</div>
+            <div style="color:var(--text2);">150 pts per successful referral</div>
+          </div>
+          <div style="padding:12px;background:var(--bg2);border-radius:var(--radius);font-size:13px;">
+            <div style="color:var(--purple);font-weight:700;margin-bottom:4px;">Nominate</div>
+            <div style="color:var(--text2);">200 pts per nomination · 25 per vote</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ REFERRALS ═══════════════ -->
+    <section class="section" id="sec-referrals">
+      <div class="breadcrumb">
+        <a href="#" onclick="showSection('overview')">Overview</a><span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-current">Referrals</span>
+      </div>
+      <div class="page-hdr">
+        <div class="page-title">Referral <span>Mining</span></div>
+        <div class="page-sub">Generate · Share · Earn · OP_NET Testnet</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:24px;">
+        <div class="card stat-card" data-icon="👥"><div class="stat-label">Total Referrals</div><div class="stat-val orange" id="rf-count">0</div><div class="stat-meta">Unique wallets</div></div>
+        <div class="card stat-card" data-icon="₿"><div class="stat-label">BTC Earned</div><div class="stat-val green" id="rf-earn">0.00000000</div><div class="stat-meta">From referrals</div></div>
+        <div class="card stat-card" data-icon="⚡"><div class="stat-label">Points Earned</div><div class="stat-val blue" id="rf-pts">0</div><div class="stat-meta">150 pts per ref</div></div>
+      </div>
+
+      <div class="card card-glow" style="padding:24px;margin-bottom:16px;">
+        <div style="font-size:16px;font-weight:700;letter-spacing:1px;margin-bottom:16px;">
+          🔗 Your Referral Link
+        </div>
+        <div class="ref-link-box">
+          <input class="ref-link-input" id="ref-link-input" readonly value="Connect wallet to generate"/>
+          <button class="ref-copy-btn" onclick="copyRef()">COPY</button>
+        </div>
+        <p style="font-family:var(--mono);font-size:11px;color:var(--text3);line-height:1.6;">
+          Share this link. When a new wallet connects via your link, you earn 0.0001 BTC and 150 points.
+          Rewards are tracked on-chain and visible in your activity log.
+        </p>
+      </div>
+
+      <div class="card" style="padding:24px;">
+        <div style="font-size:15px;font-weight:700;letter-spacing:1px;margin-bottom:14px;">Referred Wallets</div>
+        <div id="rf-list">
+          <div style="text-align:center;padding:28px;font-family:var(--mono);font-size:12px;color:var(--text3);">
+            No referrals yet. Share your link to get started.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ NOMINATION ═══════════════ -->
+    <section class="section" id="sec-nomination">
+      <div class="breadcrumb">
+        <a href="#" onclick="showSection('overview')">Overview</a><span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-current">Nomination</span>
+      </div>
+      <div class="page-hdr">
+        <div class="page-title">Nomination <span>Protocol</span></div>
+        <div class="page-sub">Nominate · Stake · Vote · OP_NET Testnet</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <!-- Submit form -->
+        <div>
+          <div class="card card-glow" style="padding:24px;">
+            <div style="font-size:16px;font-weight:700;letter-spacing:1px;margin-bottom:20px;">
+              + Submit Nomination
+            </div>
+            <div class="field">
+              <label class="field-label">Project / Name</label>
+              <input type="text" class="field-input" id="nom-name" placeholder="Project or wallet name"/>
+            </div>
+            <div class="field">
+              <label class="field-label">Address to Nominate</label>
+              <input type="text" class="field-input" id="nom-addr" placeholder="0x... or Bitcoin address"/>
+            </div>
+            <div class="field">
+              <label class="field-label">Description</label>
+              <textarea class="field-textarea" id="nom-desc" placeholder="Why nominate this project?"></textarea>
+            </div>
+            <div class="field">
+              <label class="field-label">Stake Amount (BTC)</label>
+              <div class="input-wrap">
+                <input type="number" class="field-input" id="nom-stake" placeholder="0.001" step="0.0001" min="0"/>
+                <span class="input-unit">BTC</span>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-full" id="nom-btn" onclick="handleNominate()">
+              Submit Nomination
+            </button>
+            <div class="tx-box" id="nom-tx"><div class="tx-lbl">✔ Nomination Submitted</div><div class="tx-hash"></div></div>
+          </div>
+        </div>
+
+        <!-- Nominations list -->
+        <div>
+          <div style="font-size:15px;font-weight:700;letter-spacing:1px;margin-bottom:14px;">
+            Active Nominations
+          </div>
+          <div id="nom-list">
+            <div style="padding:28px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--text3);">
+              No nominations yet. Be the first to nominate.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ ACTIVITY ═══════════════ -->
+    <section class="section" id="sec-activity">
+      <div class="breadcrumb">
+        <a href="#" onclick="showSection('overview')">Overview</a><span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-current">Activity</span>
+      </div>
+      <div class="page-hdr">
+        <div class="page-title">Transaction <span>Activity</span></div>
+        <div class="page-sub">Complete vault history · OP_NET Testnet</div>
+      </div>
+
+      <div class="card act-table">
+        <div class="act-head">
+          <div>Type</div><div>Hash</div><div>Amount</div><div>Time</div>
+        </div>
+        <div id="act-list">
+          <div class="act-empty">No transactions recorded yet.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ SETTINGS ═══════════════ -->
+    <section class="section" id="sec-settings">
+      <div class="breadcrumb">
+        <a href="#" onclick="showSection('overview')">Overview</a><span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-current">Settings</span>
+      </div>
+      <div class="page-hdr">
+        <div class="page-title">Account <span>Settings</span></div>
+        <div class="page-sub">Preferences · Network · Session</div>
+      </div>
+
+      <div class="card" style="overflow:hidden;margin-bottom:16px;">
+        <div class="settings-row">
+          <div>
+            <div class="settings-key">Connected Wallet</div>
+            <div class="settings-val" id="set-wallet">—</div>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-key">Network</div>
+            <div class="settings-val">OP_NET Testnet · Chain ID: 0xOPTEST</div>
+          </div>
+          <span class="badge badge-or">TESTNET</span>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-key">Explorer</div>
+            <div class="settings-val">explorer.testnet.opnet.org</div>
+          </div>
+          <a href="https://explorer.testnet.opnet.org" target="_blank" class="btn btn-ghost btn-sm">Open ↗</a>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-key">Ambient Audio</div>
+            <div class="settings-val">Soft ambient tone during session</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="toggleAudio(document.getElementById('audio-btn'))">Toggle</button>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-key">Clear Local Data</div>
+            <div class="settings-val">Reset vault, rewards, and activity cache</div>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="clearData()">Clear</button>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-key">Disconnect Session</div>
+            <div class="settings-val">Remove wallet connection</div>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="handleDisconnect()">Disconnect</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script src="wallet.js"></script>
+<script src="opnet-testnet.js"></script>
+<script src="app.js"></script>
+<script>
+// ─── Vault ─────────────────────────────────────────────────────────────────
+
+let _lockDur = null;
+
+function selDur(days) {
+  _lockDur = days;
+  [30,90,180,365].forEach(d => document.getElementById('dur-' + d).classList.remove('sel'));
+  document.getElementById('dur-' + days).classList.add('sel');
+
+  const expiry = new Date(Date.now() + days * 86400000);
+  const pts = days * 10;
+  document.getElementById('lock-preview-txt').textContent =
+    `Unlock: ${expiry.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;
+  document.getElementById('lock-preview-pts').textContent =
+    `Earn +${pts} points`;
+  document.getElementById('lock-preview-box').style.display = 'block';
+  document.getElementById('lock-btn').disabled = false;
+}
+
+async function handleDeposit() {
+  const amt = parseFloat(document.getElementById('dep-amt').value);
+  if (isNaN(amt) || amt <= 0) { toast('Invalid Amount','Enter a valid BTC amount','err'); return; }
+  const btn = document.getElementById('dep-btn');
+  hideTxBox('dep-tx');
+  setBtnLoading(btn, 'Broadcasting...');
+  try {
+    const res = await depositBTC(amt);
+    showTxBox('dep-tx', res.txHash);
+    document.getElementById('dep-amt').value = '';
+    toast('Deposit Confirmed', `+${amt} BTC added to vault`, 'ok');
+    refreshVault(); refreshOverview();
+  } catch(e) { toast('Deposit Failed', e.message, 'err'); }
+  finally { setBtnDone(btn); }
+}
+
+function setMaxWd() {
+  const addr = WalletManager.getAddress();
+  if (!addr) return;
+  const v = VaultDB.get(addr);
+  document.getElementById('wd-amt').value = v.balance;
+}
+
+async function handleWithdraw() {
+  const amt = parseFloat(document.getElementById('wd-amt').value);
+  if (isNaN(amt) || amt <= 0) { toast('Invalid Amount','Enter a valid BTC amount','err'); return; }
+  const btn = document.getElementById('wd-btn');
+  hideTxBox('wd-tx');
+  setBtnLoading(btn, 'Processing...');
+  try {
+    const res = await withdrawBTC(amt);
+    showTxBox('wd-tx', res.txHash);
+    document.getElementById('wd-amt').value = '';
+    toast('Withdrawal Confirmed', `-${amt} BTC withdrawn`, 'ok');
+    refreshVault(); refreshOverview();
+  } catch(e) { toast('Withdrawal Failed', e.message, 'err'); }
+  finally { setBtnDone(btn); }
+}
+
+async function handleLock() {
+  if (!_lockDur) { toast('No Duration', 'Select a lock duration', 'err'); return; }
+  const btn = document.getElementById('lock-btn');
+  hideTxBox('lock-tx');
+  setBtnLoading(btn, 'Locking Vault...');
+  try {
+    const res = await lockVault(_lockDur);
+    showTxBox('lock-tx', res.txHash);
+    toast('Vault Locked!', `Locked for ${_lockDur} days`, 'ok');
+    _lockDur = null;
+    [30,90,180,365].forEach(d => document.getElementById('dur-' + d).classList.remove('sel'));
+    document.getElementById('lock-preview-box').style.display = 'none';
+    btn.disabled = true;
+    refreshVault(); refreshOverview();
+  } catch(e) { toast('Lock Failed', e.message, 'err'); }
+  finally { setBtnDone(btn); }
+}
+
+async function refreshVault() {
+  const addr = WalletManager.getAddress(); if (!addr) return;
+  const state = await getVaultState();
+
+  document.getElementById('vt-bal').textContent = state.balance.toFixed(8);
+  document.getElementById('wd-avail').textContent = state.balance.toFixed(8) + ' BTC';
+
+  const lBadge = document.getElementById('vt-lock-badge');
+  const lExp   = document.getElementById('vt-lock-exp');
+  const warnEl = document.getElementById('wd-lock-warn');
+  const wdForm = document.getElementById('wd-form');
+  const lockForm = document.getElementById('lock-form');
+  const alreadyEl = document.getElementById('lock-already');
+
+  if (state.locked) {
+    lBadge.className = 'badge badge-lock'; lBadge.textContent = '🔒 LOCKED';
+    const d = new Date(state.lockExpiry).toLocaleDateString();
+    lExp.textContent = `Until ${d}`;
+    warnEl.style.display = 'block';
+    document.getElementById('wd-lock-msg').textContent = `Locked until ${d}`;
+    wdForm.style.opacity = '0.4'; wdForm.style.pointerEvents = 'none';
+    alreadyEl.style.display = 'block';
+    document.getElementById('lock-already-msg').textContent = `Vault locked until ${d}`;
+    lockForm.style.opacity = '0.4'; lockForm.style.pointerEvents = 'none';
+  } else {
+    lBadge.className = 'badge badge-unlock'; lBadge.textContent = '● UNLOCKED';
+    lExp.textContent = 'No expiry';
+    warnEl.style.display = 'none';
+    wdForm.style.opacity = ''; wdForm.style.pointerEvents = '';
+    alreadyEl.style.display = 'none';
+    lockForm.style.opacity = ''; lockForm.style.pointerEvents = '';
+  }
+
+  renderCountdown('vt-countdown', state.locked ? state.lockExpiry : null);
+}
+
+// ─── Overview ──────────────────────────────────────────────────────────────
+
+async function refreshOverview() {
+  const addr = WalletManager.getAddress(); if (!addr) return;
+  const [vault, rewards, refs] = await Promise.all([getVaultState(), getRewardsState(), getReferralState()]);
+  const tier = RewardsDB.getTier(rewards.points);
+  const noms = NominationsDB.all().filter(n => n.nominator === addr);
+
+  document.getElementById('ov-bal').textContent      = vault.balance.toFixed(8);
+  document.getElementById('ov-pts').textContent      = rewards.points;
+  document.getElementById('ov-tier').textContent     = `${tier.icon} ${tier.name} Tier`;
+  document.getElementById('ov-ref-earn').textContent = refs.earned.toFixed(8);
+  document.getElementById('ov-noms').textContent     = noms.length;
+
+  const lBadge = document.getElementById('ov-lock-badge');
+  const lExp   = document.getElementById('ov-lock-exp');
+  if (vault.locked) {
+    lBadge.className = 'badge badge-lock'; lBadge.textContent = '🔒 LOCKED';
+    lExp.textContent = 'Until ' + new Date(vault.lockExpiry).toLocaleDateString();
+  } else {
+    lBadge.className = 'badge badge-unlock'; lBadge.textContent = '● UNLOCKED';
+    lExp.textContent = 'No active lock';
+  }
+
+  const txEl   = document.getElementById('ov-last-tx');
+  const txLink = document.getElementById('ov-tx-link');
+  if (vault.lastTxHash) {
+    txEl.textContent = vault.lastTxHash.slice(0, 20) + '…';
+    txLink.href = `${OPNET_TESTNET.explorer}/tx/${vault.lastTxHash}`;
+    txLink.style.display = 'inline';
+  }
+
+  renderCountdown('ov-countdown', vault.locked ? vault.lockExpiry : null);
+  updateWalletUI();
+}
+
+// ─── Rewards ───────────────────────────────────────────────────────────────
+
+function refreshRewards() {
+  const addr = WalletManager.getAddress(); if (!addr) return;
+  const r    = RewardsDB.get(addr);
+  const tier = RewardsDB.getTier(r.points);
+
+  document.getElementById('rw-pts').textContent      = r.points;
+  document.getElementById('rw-tier-name').textContent = `${tier.icon} ${tier.name}`;
+  document.getElementById('rw-dep-pts').textContent  = r.depositPts;
+  document.getElementById('rw-lock-pts').textContent = r.lockPts;
+  document.getElementById('rw-ref-pts').textContent  = r.refPts;
+  document.getElementById('rw-nom-pts').textContent  = r.nomPts;
+
+  // Tier progress bar
+  const fill = tier.max === Infinity ? 100 :
+    Math.min(100, Math.round(((r.points - tier.min) / (tier.max - tier.min)) * 100));
+  document.getElementById('rw-tier-fill').style.width = fill + '%';
+  document.getElementById('rw-tier-min').textContent  = tier.min + ' pts';
+  const nextTier = tier.max === Infinity ? 'Max tier reached!' : `${tier.max - r.points} pts to next`;
+  document.getElementById('rw-tier-next').textContent = nextTier;
+
+  // Tier cards
+  const tiers = [
+    { name:'Bronze',  icon:'🥉', min:0,     max:500  },
+    { name:'Silver',  icon:'🥈', min:500,   max:3000 },
+    { name:'Gold',    icon:'🥇', min:3000,  max:10000},
+    { name:'Diamond', icon:'💎', min:10000, max:Infinity }
+  ];
+  const cont = document.getElementById('tier-cards');
+  cont.innerHTML = tiers.map(t => `
+    <div class="tier-card ${tier.name === t.name ? 'current' : ''}">
+      <div class="tier-ico">${t.icon}</div>
+      <div class="tier-name">${t.name}</div>
+      <div class="tier-pts">${t.max === Infinity ? `${t.min}+` : `${t.min}–${t.max}`} <span>pts</span></div>
+    </div>
+  `).join('');
+}
+
+// ─── Referrals ─────────────────────────────────────────────────────────────
+
+function refreshReferrals() {
+  const addr = WalletManager.getAddress(); if (!addr) return;
+  const r = ReferralDB.get(addr);
+
+  document.getElementById('rf-count').textContent = r.count;
+  document.getElementById('rf-earn').textContent  = r.earned.toFixed(8);
+  document.getElementById('rf-pts').textContent   = r.count * 150;
+
+  const link = `${window.location.origin}${window.location.pathname}?ref=${addr}`;
+  document.getElementById('ref-link-input').value = link;
+
+  const listEl = document.getElementById('rf-list');
+  if (r.refs.length === 0) {
+    listEl.innerHTML = '<div style="text-align:center;padding:28px;font-family:var(--mono);font-size:12px;color:var(--text3);">No referrals yet. Share your link to get started.</div>';
+  } else {
+    listEl.innerHTML = r.refs.map((ra, i) => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);">
+        <div>
+          <div style="font-family:var(--mono);font-size:12px;color:var(--text);">${ra.slice(0,16)}…${ra.slice(-6)}</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text3);">Referral #${i+1}</div>
+        </div>
+        <div style="color:var(--green);font-family:var(--mono);font-size:12px;">+0.0001 BTC</div>
+      </div>
+    `).join('');
+  }
+}
+
+function copyRef() {
+  const v = document.getElementById('ref-link-input').value;
+  if (v.includes('Connect wallet')) { toast('Not Ready', 'Connect wallet first', 'err'); return; }
+  navigator.clipboard.writeText(v).then(() => toast('Copied!', 'Referral link copied', 'ok'));
+}
+
+// ─── Nomination ─────────────────────────────────────────────────────────────
+
+async function handleNominate() {
+  const name  = document.getElementById('nom-name').value.trim();
+  const addr  = document.getElementById('nom-addr').value.trim();
+  const desc  = document.getElementById('nom-desc').value.trim();
+  const stake = document.getElementById('nom-stake').value;
+  if (!name || !addr || !desc || !stake) { toast('Missing Fields', 'Fill all fields', 'err'); return; }
+  const btn = document.getElementById('nom-btn');
+  hideTxBox('nom-tx');
+  setBtnLoading(btn, 'Submitting...');
+  try {
+    const res = await submitNomination({ name, nomAddr: addr, description: desc, stake });
+    showTxBox('nom-tx', res.txHash);
+    ['nom-name','nom-addr','nom-desc','nom-stake'].forEach(id => document.getElementById(id).value = '');
+    toast('Nomination Submitted!', name + ' nominated', 'ok');
+    refreshNomination(); refreshOverview();
+  } catch(e) { toast('Failed', e.message, 'err'); }
+  finally { setBtnDone(btn); }
+}
+
+async function handleVote(nomId) {
+  try {
+    await voteNomination(nomId);
+    toast('Vote Cast!', '+25 points earned', 'ok');
+    refreshNomination();
+  } catch(e) { toast('Vote Failed', e.message, 'err'); }
+}
+
+async function refreshNomination() {
+  const res = await getAllNominations();
+  const cont = document.getElementById('nom-list');
+  const addr = WalletManager.getAddress();
+  if (!res.nominations || res.nominations.length === 0) {
+    cont.innerHTML = '<div style="padding:28px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--text3);">No nominations yet. Be the first to nominate.</div>';
+    return;
+  }
+  cont.innerHTML = res.nominations.slice(0, 20).map(n => {
+    const voted = n.voters && n.voters.includes(addr);
+    return `
+    <div class="card nom-card">
+      <div class="nom-avatar">${n.name[0].toUpperCase()}</div>
+      <div class="nom-info">
+        <div class="nom-name">${n.name}</div>
+        <div class="nom-desc">${n.description.slice(0,80)}${n.description.length>80?'…':''}</div>
+        <div class="nom-addr">${n.address.slice(0,20)}… · Stake: ${n.stake} BTC</div>
+      </div>
+      <div class="nom-actions">
+        <div>
+          <div class="vote-count">${n.votes}</div>
+          <div class="vote-lbl">votes</div>
+        </div>
+        <button class="btn btn-sm ${voted ? 'btn-ghost' : 'btn-outline'}"
+          onclick="handleVote('${n.id}')" ${voted ? 'disabled' : ''}>
+          ${voted ? '✔ Voted' : '↑ Vote'}
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Activity ──────────────────────────────────────────────────────────────
+
+async function refreshActivity() {
+  const res = await getActivity();
+  const cont = document.getElementById('act-list');
+  if (!res.activity || res.activity.length === 0) {
+    cont.innerHTML = '<div class="act-empty">No transactions recorded yet.</div>'; return;
+  }
+  cont.innerHTML = res.activity.map(a => {
+    const url  = `${OPNET_TESTNET.explorer}/tx/${a.txHash}`;
+    const short = a.txHash.slice(0,18) + '…' + a.txHash.slice(-8);
+    const t    = new Date(a.ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    return `
+      <div class="act-row">
+        <span class="act-type ${a.type.slice(0,3)}">${a.type.toUpperCase()}</span>
+        <span class="act-hash"><a href="${url}" target="_blank">${short}</a></span>
+        <span class="act-amt" style="font-family:var(--mono);font-size:11px;">${a.amount}</span>
+        <span class="act-time">${t}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// ─── Settings ──────────────────────────────────────────────────────────────
+
+function refreshSettings() {
+  const addr = WalletManager.getAddress();
+  const el = document.getElementById('set-wallet');
+  if (el) el.textContent = addr || '—';
+}
+
+function clearData() {
+  if (!confirm('Clear all local vault data? This cannot be undone.')) return;
+  ['opnet_vault_v2','opnet_rewards_v2','opnet_refs_v2','opnet_noms_v2','opnet_activity_v2'].forEach(k => localStorage.removeItem(k));
+  toast('Data Cleared', 'All local data removed', 'info');
+  refreshOverview(); refreshVault();
+}
+
+// Mobile strip sync
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.ms-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.ms-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+});
+</script>
+</body>
+</html>
